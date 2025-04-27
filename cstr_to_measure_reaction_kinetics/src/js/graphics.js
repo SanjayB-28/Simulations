@@ -941,4 +941,35 @@ function drawSimpleTank(x, y, w, h, liquidLevel, liquidColor) {
     }
     endShape(CLOSE);
   }
+
+  // Add bar structures on both sides of the inner walls
+  const barWidth = w * 0.04; // Width of the bars
+  const barLength = h * 0.5; // Length of the bars
+  const rodWidth = w * 0.015; // Width of the connecting rods
+  const rodLength = w * 0.05; // Length of the connecting rods
+  const barExtension = h * 0.03; // How much the bar extends beyond the clamps
+  const verticalOffset = h * 0.1; // Added vertical offset to move bars down
+  
+  // Draw left side bar structure
+  fill(180); // Dark grey for bars and rods
+  noStroke();
+  
+  // Left bar (extended beyond clamps)
+  rect(x - wInner/2 + rodLength, y - barLength/2 - barExtension + verticalOffset, barWidth, barLength + 2 * barExtension);
+  
+  // Top rod
+  rect(x - wInner/2, y - barLength/2 + verticalOffset, rodLength, rodWidth);
+  
+  // Bottom rod
+  rect(x - wInner/2, y + barLength/2 - rodWidth + verticalOffset, rodLength, rodWidth);
+  
+  // Draw right side bar structure
+  // Right bar (extended beyond clamps)
+  rect(x + wInner/2 - rodLength - barWidth, y - barLength/2 - barExtension + verticalOffset, barWidth, barLength + 2 * barExtension);
+  
+  // Top rod
+  rect(x + wInner/2 - rodLength, y - barLength/2 + verticalOffset, rodLength, rodWidth);
+  
+  // Bottom rod
+  rect(x + wInner/2 - rodLength, y + barLength/2 - rodWidth + verticalOffset, rodLength, rodWidth);
 } 
