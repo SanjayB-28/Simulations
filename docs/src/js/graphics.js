@@ -36,6 +36,43 @@ let pumpBSwitchBounds = null;
 // Add reset button state
 let resetButtonBounds = null;
 
+// Slider positions and dimensions
+const sliderA = {
+  x: 100,
+  y: 150,
+  width: 200,
+  height: 20
+};
+
+const sliderB = {
+  x: 100,
+  y: 250,
+  width: 200,
+  height: 20
+};
+
+// Tank dimensions and positions
+const tankA = {
+  x: 400,
+  y: 150,
+  width: 100,
+  height: 150
+};
+
+const tankB = {
+  x: 400,
+  y: 350,
+  width: 100,
+  height: 150
+};
+
+const finalTank = {
+  x: 600,
+  y: 250,
+  width: 150,
+  height: 200
+};
+
 function drawValveMonitor(x, y, value) {
   // Monitor box
   stroke(0);
@@ -670,62 +707,16 @@ function drawStand(x, y, w, h) {
   line(leftLegX, y - h/4, rightLegX, y + h/4);
 }
 
-function drawSlider(x, y, w, value, label) {
-  const sliderY = y - 30;
-  // Draw slider track with rounded ends
-  stroke(40);
-  strokeWeight(4);
-  fill(230);
-  const trackRadius = 8;
-  const trackY = sliderY;
-  const trackLeft = x - w/2;
-  const trackRight = x + w/2;
-  line(trackLeft + trackRadius, trackY, trackRight - trackRadius, trackY);
-  ellipse(trackLeft + trackRadius, trackY, trackRadius * 2, trackRadius * 2);
-  ellipse(trackRight - trackRadius, trackY, trackRadius * 2, trackRadius * 2);
-
-  // Draw tick marks
-  stroke(100);
-  strokeWeight(1);
-  for (let i = 0; i <= 5; i++) {
-    const tx = map(i, 0, 5, trackLeft + trackRadius, trackRight - trackRadius);
-    line(tx, trackY - 7, tx, trackY + 7);
-  }
-
-  // Draw slider handle (3D look)
-  const handleX = map(value, 0.1, 0.5, trackLeft + trackRadius, trackRight - trackRadius);
-  const handleR = 13;
-  // Shadow
-  noStroke();
-  fill(120, 120, 120, 60);
-  ellipse(handleX + 2, trackY + 3, handleR * 1.1, handleR * 0.7);
-  // Handle
-  stroke(40);
-  strokeWeight(2);
-  fill(255, 0, 0); // Red color
-  ellipse(handleX, trackY, handleR, handleR);
-  // Handle highlight
-  noStroke();
-  fill(255, 255, 255, 120);
-  ellipse(handleX - 2, trackY - 2, handleR * 0.5, handleR * 0.3);
-
-  // Draw value display box
-  fill(255);
-  stroke(40);
-  strokeWeight(1);
-  rect(handleX - 22, trackY - 35, 44, 22, 6);
-  noStroke();
-  fill(0);
-  textAlign(CENTER, CENTER);
-  textSize(12);
-  text(value.toFixed(2), handleX, trackY - 24);
-
-  // Draw label below
-  noStroke();
-  fill(0);
-  textAlign(CENTER, TOP);
-  textSize(11);
-  text(label, x, trackY + 15);
+function drawSlider(p, x, y, width, height, value) {
+  // Draw track
+  p.fill(200);
+  p.noStroke();
+  p.rect(x, y, width, height, height/2);
+  
+  // Draw handle
+  const handleX = x + (width - height) * value;
+  p.fill(255, 0, 0); // Red handle
+  p.ellipse(handleX + height/2, y + height/2, height);
 }
 
 function drawLiquid(x, y, w, h, level, color) {
@@ -803,56 +794,29 @@ function drawLiquid(x, y, w, h, level, color) {
   endShape(CLOSE);
 }
 
-export function drawTank(x, y, w, h, label, liquidColor, isFirstTank, liquidLevel) {
-  // Draw stand first
-  drawStand(x, y, w, h);
+export function drawTank(p, x, y, width, height, label, concentration) {
+  // Draw tank outline
+  p.stroke(0);
+  p.noFill();
+  p.rect(x - width/2, y - height/2, width, height);
   
-  // Draw liquid with current level
-  drawLiquid(x, y, w, h, liquidLevel, liquidColor);
+  // Draw liquid
+  const liquidHeight = height * concentration;
+  const liquidColor = p.color(
+    200 - concentration * 100,
+    220 - concentration * 100,
+    255 - concentration * 100,
+    200
+  );
+  p.fill(liquidColor);
+  p.noStroke();
+  p.rect(x - width/2, y + height/2 - liquidHeight, width, liquidHeight);
   
-  // Tank outline
-  stroke(0);
-  strokeWeight(2);
-  noFill();
-  
-  // Main cylindrical body
-  const cylinderHeight = h * 0.7;
-  
-  // Draw lid
-  const lidWidth = w * 0.4;
-  const lidHeight = 10;
-  rect(x - lidWidth/2, y - h/2 - lidHeight, lidWidth, lidHeight, 5);
-  
-  // Draw rounded top
-  arc(x, y - h/2, w, 40, Math.PI, 2 * Math.PI);
-  
-  // Draw main cylinder sides
-  line(x - w/2, y - h/2, x - w/2, y - h/2 + cylinderHeight);
-  line(x + w/2, y - h/2, x + w/2, y - h/2 + cylinderHeight);
-  
-  // Conical bottom
-  const coneTopWidth = w;
-  const coneBottomWidth = w * 0.1;
-  const coneHeight = h * 0.3;
-  
-  // Draw cone
-  line(x - coneTopWidth/2, y - h/2 + cylinderHeight, x - coneBottomWidth/2, y - h/2 + cylinderHeight + coneHeight);
-  line(x + coneTopWidth/2, y - h/2 + cylinderHeight, x + coneBottomWidth/2, y - h/2 + cylinderHeight + coneHeight);
-  
-  // Bottom line of cone
-  line(x - coneBottomWidth/2, y - h/2 + cylinderHeight + coneHeight, x + coneBottomWidth/2, y - h/2 + cylinderHeight + coneHeight);
-  
-  // Draw outlet pipe with bottom valve
-  const valvePos = isFirstTank ? valveAPosition : valveBPosition;
-  const valveLabel = isFirstTank ? "Tank A" : "Tank B";
-  drawOutletPipe(x, y - h/2 + cylinderHeight + coneHeight + 10, coneBottomWidth, valvePos, valveLabel);
-  
-  // Tank label
-  fill(0);
-  noStroke();
-  textAlign(CENTER, CENTER);
-  textSize(h * 0.05);
-  text(label, x, y);
+  // Draw label
+  p.fill(0);
+  p.noStroke();
+  p.textAlign(p.CENTER, p.CENTER);
+  p.text(label, x, y - height/2 - 20);
 }
 
 export function setupCanvas(containerElement) {
@@ -933,7 +897,7 @@ function handleInteractions() {
 window.tankAHandle = null;
 window.tankBHandle = null;
 
-export function drawSimulation(width, height) {
+export function drawSimulation(p) {
   background(255);
   
   // Draw reset button
@@ -962,13 +926,13 @@ export function drawSimulation(width, height) {
   
   // Draw Tank A (left tank) with blue liquid
   const tankAColor = color(200 - sliderAValue * 100, 220 - sliderAValue * 100, 255 - sliderAValue * 100, 200);
-  drawTank(tankAX, tankY, tankW, tankH, "NaOH", tankAColor, true, tankALiquidLevel);
-  drawSlider(tankAX, tankY - tankH/2 - 40, tankW, sliderAValue, "CA0");
+  drawTank(p, tankAX, tankY, tankW, tankH, "NaOH", tankALiquidLevel);
+  drawSlider(p, sliderA.x, sliderA.y, sliderA.width, sliderA.height, sliderAValue);
   
   // Draw Tank B (right tank) with green liquid
   const tankBColor = color(200 - sliderBValue * 100, 255 - sliderBValue * 100, 220 - sliderBValue * 100, 200);
-  drawTank(tankBX, tankY, tankW, tankH, "CH₃COOCH₃", tankBColor, false, tankBLiquidLevel);
-  drawSlider(tankBX, tankY - tankH/2 - 40, tankW, sliderBValue, "CB0");
+  drawTank(p, tankBX, tankY, tankW, tankH, "CH₃COOCH₃", tankBLiquidLevel);
+  drawSlider(p, sliderB.x, sliderB.y, sliderB.width, sliderB.height, sliderBValue);
 
   // Calculate blended color for final tank based on concentrations
   const totalConcentration = sliderAValue + sliderBValue;
