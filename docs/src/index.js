@@ -1,5 +1,4 @@
 import "bootstrap";
-import p5 from "p5";
 import "./style/slider.scss";
 import { drawSimulation } from "./js/graphics.js";
 import { handleInteractions } from "./js/interactions.js";
