@@ -1,56 +1,78 @@
-// Graphics-related functions for the simulation
+// CSTR (Continuous Stirred Tank Reactor) simulation graphics module
 
 // Global state variables
-let sliderAValue = 0.3;
-let sliderBValue = 0.3;
-let valveAPosition = 0;
-let valveBPosition = 0;
-let waveOffset = 0;
-let tankALiquidLevel = 0.85;
-let tankBLiquidLevel = 0.85;
-let simpleTankLiquidLevel = 0.65;
-let simpleTankWaterfallProgress = 0;
-let rotorAngle = 0;
-let rotorOn = false;
-let pumpASwitchOn = false;
-let pumpBSwitchOn = false;
-let switchBounds = null;
-let pumpASwitchBounds = null;
-let pumpBSwitchBounds = null;
-let resetButtonBounds = null;
-let temperatureValue = 130;
-let tankAHandle = null;
-let tankBHandle = null;
-let concentrationSet = false;
-let setButtonBounds = null;
-let temperatureSet = false;
-let tempSetButtonBounds = null;
-// Add global progress and level for collection tank
-let collectionTankWaterfallProgress = 0;
-let collectionTankLiquidLevel = 0;
-// Add these global variables at the top with other state variables
-let lastUpdateTime = 0;
-let tankADeltaV = 0;
-let tankBDeltaV = 0;
-let tankALastFlowTime = 0;
-let tankBLastFlowTime = 0;
-// Add this with other global variables at the top
-let totalInletFlowRate = 0;
+let sliderAValue = 0.3;      // NaOH concentration
+let sliderBValue = 0.3;      // CH₃COOCH₃ concentration
+let valveAPosition = 0;      // NaOH valve (0 to -π/2)
+let valveBPosition = 0;      // CH₃COOCH₃ valve (0 to -π/2)
+let waveOffset = 0;          // Liquid surface animation
 
-// Constants
-const TANK_VOLUME = 200000; // 200L in ml
-const FLOW_RATE_FACTOR = 0.0000003;
-const MAX_FLOW_RATE = 60;
-const SIMPLE_TANK_MAX_LEVEL = 0.65;
-const SIMPLE_TANK_FILL_RATE = 0.0005;
+// Tank levels (0 to 1)
+let tankALiquidLevel = 0.85; // NaOH tank
+let tankBLiquidLevel = 0.85; // CH₃COOCH₃ tank
+let simpleTankLiquidLevel = 0.65; // CSTR tank
+let collectionTankLiquidLevel = 0; // Collection tank
+
+// Animation and control states
+let simpleTankWaterfallProgress = 0;    // CSTR waterfall
+let collectionTankWaterfallProgress = 0; // Collection waterfall
+let rotorAngle = 0;                     // Rotor rotation
+let rotorOn = false;                    // Rotor power
+let pumpASwitchOn = false;              // NaOH pump
+let pumpBSwitchOn = false;              // CH₃COOCH₃ pump
+
+// UI element bounds
+let switchBounds = null;                // Rotor switch
+let pumpASwitchBounds = null;           // NaOH pump switch
+let pumpBSwitchBounds = null;           // CH₃COOCH₃ pump switch
+let resetButtonBounds = null;           // Reset button
+let setButtonBounds = null;             // Concentration set
+let tempSetButtonBounds = null;         // Temperature set
+
+// Control states
+let temperatureValue = 130;             // Temperature (°F)
+let temperatureSet = false;             // Temp set state
+let concentrationSet = false;           // Conc set state
+
+// Interaction handles
+let tankAHandle = null;                 // NaOH valve
+let tankBHandle = null;                 // CH₃COOCH₃ valve
+
+// Flow tracking
+let lastUpdateTime = 0;                 // Last flow update
+let tankADeltaV = 0;                    // NaOH volume
+let tankBDeltaV = 0;                    // CH₃COOCH₃ volume
+let tankALastFlowTime = 0;              // Last NaOH flow
+let tankBLastFlowTime = 0;              // Last CH₃COOCH₃ flow
+let totalInletFlowRate = 0;             // Total inlet flow
+
+// CSTR calculations
+let lastCalculationTime = 0;            // Last calc time
+let currentCA1 = 0;                     // CH₃COONa conc
+let currentCB1 = 0;                     // CH₃OH conc
+let accumulatedTime = 0;                // Reaction time
+
+// Color states
+let lastCSTRColor = null;               // CSTR tank color
+let lastCollectionColor = null;         // Collection tank color
+
+// Import CSTR calculation module
+const run_CSTR = require('./cstr_calc');
+
+// Simulation constants
+const TANK_VOLUME = 200000;             // 200L in ml
+const FLOW_RATE_FACTOR = 0.0000003;     // Flow scaling
+const MAX_FLOW_RATE = 60;               // Max flow (ml/s)
+const SIMPLE_TANK_MAX_LEVEL = 0.65;     // Max CSTR level
+const SIMPLE_TANK_FILL_RATE = 0.0005;   // CSTR fill rate
 
 function drawValveMonitor(x, y, value) {
   // Monitor box
   stroke(0);
   strokeWeight(1);
   fill(220);
-  const monitorWidth = 50;
-  const monitorHeight = 30;
+  const monitorWidth = 65; // Increased from 50
+  const monitorHeight = 35; // Increased from 30
   rect(x, y, monitorWidth, monitorHeight, 5);
   
   // Display value in ml/sec
@@ -316,6 +338,9 @@ function drawPump(x, y, size, pipeWidth, label) {
       const blendGreen = green(waterColor) * 0.5 + green(inletFlowColor) * 0.5;
       const blendBlue = blue(waterColor) * 0.5 + blue(inletFlowColor) * 0.5;
       mainCSTRColor = color(blendRed, blendGreen, blendBlue, 160);
+      lastCSTRColor = mainCSTRColor; // Store the last active color
+    } else if (lastCSTRColor !== null) {
+      mainCSTRColor = lastCSTRColor; // Use the last active color when pumps are off
     }
     // Store the final CSTR tank color for use elsewhere
     const finalCSTRColor = mainCSTRColor;
@@ -337,8 +362,8 @@ function drawPump(x, y, size, pipeWidth, label) {
     stroke(0);
     strokeWeight(1);
     fill(220);
-    const monitorWidth = 60;
-    const monitorHeight = 30;
+    const monitorWidth = 75; // Increased from 60
+    const monitorHeight = 35; // Increased from 30
     rect(flowMonitorX - monitorWidth/2, flowMonitorY, monitorWidth, monitorHeight, 5);
     // Display value in ml/sec
     fill(0);
@@ -656,7 +681,7 @@ function drawOutletPipe(x, y, pipeWidth, valvePosition, label) {
 
 function drawStand(x, y, w, h) {
   stroke(0);
-  strokeWeight(3);
+  strokeWeight(3); // Keep default stroke weight for other components
   
   // Left leg
   const legSpacing = w * 1.2;
@@ -664,7 +689,8 @@ function drawStand(x, y, w, h) {
   const rightLegX = x + legSpacing/2;
   const legBottom = y + h/2 + h * 0.2;
   
-  // Draw legs
+  // Draw legs with thicker stroke
+  strokeWeight(5); // Increased stroke weight specifically for vertical legs
   line(leftLegX, y - h/4, leftLegX, legBottom);
   line(rightLegX, y - h/4, rightLegX, legBottom);
   
@@ -672,6 +698,7 @@ function drawStand(x, y, w, h) {
   const footLength = w * 0.25;
   
   // Left leg foot
+  strokeWeight(5); // Match vertical leg thickness
   line(leftLegX - footLength/2, legBottom, leftLegX + footLength/2, legBottom);
   
   // Right leg foot
@@ -682,7 +709,7 @@ function drawStand(x, y, w, h) {
   const clampExtension = w * 0.15;
   
   // Left clamp
-  strokeWeight(2);
+  strokeWeight(2); // Keep original stroke weight for clamps
   // Horizontal part
   line(leftLegX, y - h/4, leftLegX + clampExtension, y - h/4);
   line(leftLegX, y + h/4, leftLegX + clampExtension, y + h/4);
@@ -697,7 +724,7 @@ function drawStand(x, y, w, h) {
   line(rightLegX - clampExtension, y - h/4, rightLegX - clampExtension, y + h/4);
   
   // Cross support between legs (for stability)
-  strokeWeight(3);
+  strokeWeight(3); // Keep original stroke weight for cross supports
   line(leftLegX, y, rightLegX, y);
   line(leftLegX, y + h/4, rightLegX, y - h/4);
   line(leftLegX, y - h/4, rightLegX, y + h/4);
@@ -978,7 +1005,7 @@ function handleInteractions() {
 
   // --- TEMPERATURE SLIDER LOGIC ---
   // These must match drawSlider for the temperature slider
-  const tempSliderX = width - 172; // Move 12px to the left
+  const tempSliderX = width - 200; // Changed from -172 to -200 to move left
   const tempSliderY = tankY - tankH/2 - 40;
   const tempSliderW = width * 0.12;
   const tempSliderTrackLeft = tempSliderX - tempSliderW/2 + sliderTrackRadius;
@@ -1054,38 +1081,47 @@ export function drawSimulation(width, height) {
   // Draw Tank A (left tank) with blue liquid
   const tankAColor = color(255 - sliderAValue * 100, 120, 120, 200); // reddish
   drawTank(tankAX, tankY, tankW, tankH, "NaOH", tankAColor, true, tankALiquidLevel);
-  drawSlider(tankAX, sliderYCommon, tankW, sliderAValue, "CA0", undefined, 0.1, 0.5, concentrationSet);
+  drawSlider(tankAX, sliderYCommon, tankW, sliderAValue, "NaOH (mol/L)", undefined, 0.1, 0.5, concentrationSet);
   
   // Draw volume monitor for Tank A (left side)
-  const volumeMonitorAX = tankAX - tankW-10;
+  const volumeMonitorAX = tankAX - tankW-20;
   const volumeMonitorAY = tankY;
   // Add label above monitor
   fill(0);
   noStroke();
   textAlign(CENTER, BOTTOM);
   textSize(12);
-  text("NaOH ΔV", volumeMonitorAX + 25, volumeMonitorAY - 5);
+  text("NaOH ΔV", volumeMonitorAX + 35, volumeMonitorAY - 5); // Changed from +25 to +35
   drawVolumeMonitor(volumeMonitorAX, volumeMonitorAY, tankADeltaV);
   
   // Draw Tank B (right tank) with green liquid
   const tankBColor = color(200 - sliderBValue * 100, 255 - sliderBValue * 100, 220 - sliderBValue * 100, 200);
   drawTank(tankBX, tankY, tankW, tankH, "CH₃COOCH₃", tankBColor, false, tankBLiquidLevel);
-  drawSlider(tankBX, sliderYCommon, tankW, sliderBValue, "CB0", undefined, 0.1, 0.5, concentrationSet);
+  drawSlider(tankBX, sliderYCommon, tankW, sliderBValue, "CH₃COOCH₃ (mol/L)", undefined, 0.1, 0.5, concentrationSet);
   // Draw Set button next to CB0 slider
-  const setButtonW = 48;
-  const setButtonH = 28;
+  const setButtonW = 60; // Increased width
+  const setButtonH = 32; // Increased height
   const setButtonX = tankBX + tankW/2 + 18;
   const setButtonY = sliderTrackY - setButtonH/2;
   setButtonBounds = { x: setButtonX, y: setButtonY, w: setButtonW, h: setButtonH };
-  fill(concentrationSet ? 180 : 220);
-  stroke(40);
-  strokeWeight(1);
+  
+  // Modern Set button style with black border
+  stroke(0); // Black border
+  strokeWeight(2);
+  if (concentrationSet) {
+    fill(40, 167, 69); // Success green when set
+  } else {
+    fill(0, 123, 255); // Modern blue when not set
+  }
   rect(setButtonX, setButtonY, setButtonW, setButtonH, 6);
-  fill(0);
-  noStroke();
+  
+  // Button text
+  fill(255); // White text
   textAlign(CENTER, CENTER);
   textSize(14);
+  textStyle(BOLD);
   text('Set', setButtonX + setButtonW/2, setButtonY + setButtonH/2);
+  textStyle(NORMAL);
   
   // Draw volume monitor for Tank B (right side)
   const volumeMonitorBX = tankBX + tankW - 40;
@@ -1095,7 +1131,7 @@ export function drawSimulation(width, height) {
   noStroke();
   textAlign(CENTER, BOTTOM);
   textSize(12);
-  text("CH₃COOCH₃ ΔV", volumeMonitorBX + 25, volumeMonitorBY - 5);
+  text("CH₃COOCH₃ ΔV", volumeMonitorBX + 35, volumeMonitorBY - 5); // Changed from +25 to +35
   drawVolumeMonitor(volumeMonitorBX, volumeMonitorBY, tankBDeltaV);
   
   // Calculate blended color for final tank based on concentrations
@@ -1129,6 +1165,9 @@ export function drawSimulation(width, height) {
     const blendGreen = green(waterColor) * 0.5 + green(finalTankColor) * 0.5;
     const blendBlue = blue(waterColor) * 0.5 + blue(finalTankColor) * 0.5;
     mainCSTRColor = color(blendRed, blendGreen, blendBlue, 160);
+    lastCSTRColor = mainCSTRColor; // Store the last active color
+  } else if (lastCSTRColor !== null) {
+    mainCSTRColor = lastCSTRColor; // Use the last active color when pumps are off
   }
   // Store the final CSTR tank color for use elsewhere
   const finalCSTRColor = mainCSTRColor;
@@ -1141,22 +1180,31 @@ export function drawSimulation(width, height) {
 
   // Temperature slider and Set button
   const tempSliderW = width * 0.12;
-  const tempSliderX = width - 172;
+  const tempSliderX = width - 185; // Changed from -200 to -185 to move right
   drawSlider(tempSliderX, sliderYCommon, tempSliderW, temperatureValue, 'Temperature (°F)', temperatureValue, 80, 180, temperatureSet);
-  const tempSetButtonW = 48;
-  const tempSetButtonH = 28;
+  const tempSetButtonW = 60;
+  const tempSetButtonH = 32;
   const tempSetButtonX = tempSliderX + tempSliderW/2 + 18;
   const tempSetButtonY = sliderTrackY - tempSetButtonH/2;
   tempSetButtonBounds = { x: tempSetButtonX, y: tempSetButtonY, w: tempSetButtonW, h: tempSetButtonH };
-  fill(temperatureSet ? 180 : 220);
-  stroke(40);
-  strokeWeight(1);
+  
+  // Modern Temperature Set button style with black border
+  stroke(0); // Black border
+  strokeWeight(2);
+  if (temperatureSet) {
+    fill(40, 167, 69); // Success green when set
+  } else {
+    fill(0, 123, 255); // Modern blue when not set
+  }
   rect(tempSetButtonX, tempSetButtonY, tempSetButtonW, tempSetButtonH, 6);
-  fill(0);
-  noStroke();
+  
+  // Button text
+  fill(255); // White text
   textAlign(CENTER, CENTER);
   textSize(14);
+  textStyle(BOLD);
   text('Set', tempSetButtonX + tempSetButtonW/2, tempSetButtonY + tempSetButtonH/2);
+  textStyle(NORMAL);
 
   // Draw collection tank in bottom right, aligned with downward pipe
   // The downward pipe's X is verticalPipeX = x + wOuter/2 + pipeLength in drawSimpleTank
@@ -1175,7 +1223,17 @@ export function drawSimulation(width, height) {
   const cstrTankColor = color(140, 180, 255, 140); // deeper blue water
   // Always use finalTankColor for the collection tank liquid color
   const defaultCollectionColor = color(200, 220, 255, 200);
-  drawCollectionTank(collectionTankX, collectionTankY, collectionTankW, collectionTankH, collectionTankLevel, defaultCollectionColor);
+
+  // Determine collection tank color
+  let collectionTankColor = defaultCollectionColor;
+  if ((currentFlowRateA > 0 && pumpASwitchOn) || (currentFlowRateB > 0 && pumpBSwitchOn)) {
+    collectionTankColor = finalCSTRColor;
+    lastCollectionColor = finalCSTRColor; // Store the last active color
+  } else if (lastCollectionColor !== null) {
+    collectionTankColor = lastCollectionColor; // Use the last active color when pumps are off
+  }
+
+  drawCollectionTank(collectionTankX, collectionTankY, collectionTankW, collectionTankH, collectionTankLevel, collectionTankColor);
 
   // Draw flow from downward pipe to collection tank if there is outflow
   const downwardPipeX = collectionTankX + 5; // Shift flow 5px to the right
@@ -1214,20 +1272,45 @@ export function drawSimulation(width, height) {
     collectionTankWaterfallProgress = 0;
   }
   // Draw the collection tank after the flow so the tank walls appear in front
-  drawCollectionTank(collectionTankX, collectionTankY, collectionTankW, collectionTankH, collectionTankLiquidLevel, finalCSTRColor); // Use finalCSTRColor for collection tank
+  drawCollectionTank(collectionTankX, collectionTankY, collectionTankW, collectionTankH, collectionTankLiquidLevel, collectionTankColor);
+
+  // Calculate CSTR values
+  const calcTime = millis();
+  const timeSinceLastCalc = (calcTime - lastCalculationTime) / 1000; // Convert to seconds
+  
+  if (timeSinceLastCalc >= 0.1) { // Update every 100ms
+    if ((pumpASwitchOn && currentFlowRateA > 0) || (pumpBSwitchOn && currentFlowRateB > 0)) {
+      accumulatedTime += timeSinceLastCalc; // Accumulate time for continuous calculation
+      const cstrResult = run_CSTR({
+        t: accumulatedTime, // Use accumulated time for continuous calculation
+        T: temperatureValue + 459.67, // Convert F to K
+        CAf: sliderAValue,
+        CBf: sliderBValue,
+        vA: currentFlowRateA / 1000, // Convert ml/s to L/s
+        vB: currentFlowRateB / 1000  // Convert ml/s to L/s
+      });
+      
+      // Update the values
+      currentCA1 = cstrResult.CC; // CC is CA1 (CH3COONa)
+      currentCB1 = cstrResult.CD; // CD is CB1 (CH3OH)
+    }
+    // No else block - values will be maintained when pumps are off
+    lastCalculationTime = calcTime;
+  }
 
   // Draw CA1 and CB1 indicators to the left of the collection tank
-  const indicatorW = 50;
-  const indicatorH = 30;
-  const indicatorX = collectionTankX - collectionTankW/2 - indicatorW - 38; // moved further left from -18
-  const indicatorY1 = collectionTankY - 60 + 35; // moved down by 20px
-  const indicatorY2 = collectionTankY + 22 + 25; // moved down by 20px
+  const indicatorW = 65;
+  const indicatorH = 35;
+  const indicatorX = collectionTankX - collectionTankW/2 - indicatorW - 38;
+  const indicatorY1 = collectionTankY - 60 + 35;
+  const indicatorY2 = collectionTankY + 22 + 25;
+  
   // CA1 label above box
   fill(0);
   noStroke();
   textAlign(CENTER, BOTTOM);
   textSize(13);
-  text('CA1', indicatorX + indicatorW/2, indicatorY1 - 5);
+  text('CH₃COONa (mol/L)', indicatorX + indicatorW/2, indicatorY1 - 5);
   // CA1 box
   stroke(0);
   strokeWeight(1);
@@ -1237,13 +1320,14 @@ export function drawSimulation(width, height) {
   noStroke();
   textAlign(CENTER, CENTER);
   textSize(14);
-  text('0', indicatorX + indicatorW/2, indicatorY1 + indicatorH/2);
+  text(currentCA1.toFixed(4), indicatorX + indicatorW/2, indicatorY1 + indicatorH/2);
+  
   // CB1 label above box
   fill(0);
   noStroke();
   textAlign(CENTER, BOTTOM);
   textSize(13);
-  text('CB1', indicatorX + indicatorW/2, indicatorY2 - 5);
+  text('CH₃OH (mol/L)', indicatorX + indicatorW/2, indicatorY2 - 5);
   // CB1 box
   stroke(0);
   strokeWeight(1);
@@ -1253,7 +1337,8 @@ export function drawSimulation(width, height) {
   noStroke();
   textAlign(CENTER, CENTER);
   textSize(14);
-  text('0', indicatorX + indicatorW/2, indicatorY2 + indicatorH/2);
+  text(currentCB1.toFixed(4), indicatorX + indicatorW/2, indicatorY2 + indicatorH/2);
+
   // Draw polyline wires from indicators to collection tank wall
   stroke(100);
   strokeWeight(1);
@@ -1735,23 +1820,24 @@ window.mousePressed = function() {
 };
 
 function drawResetButton() {
-  const buttonWidth = 80;
-  const buttonHeight = 30;
+  const buttonWidth = 100;
+  const buttonHeight = 36;
   const buttonX = width - buttonWidth - 20;
   const buttonY = 20;
   
-  // Button background
-  fill(200);
-  stroke(40);
-  strokeWeight(1);
-  rect(buttonX, buttonY, buttonWidth, buttonHeight, 5);
+  // Button background with black border
+  stroke(0); // Black border
+  strokeWeight(2);
+  fill(220, 53, 69); // Modern red color
+  rect(buttonX, buttonY, buttonWidth, buttonHeight, 8);
   
   // Button text
-  fill(0);
-  noStroke();
+  fill(255); // White text
   textAlign(CENTER, CENTER);
   textSize(14);
+  textStyle(BOLD);
   text("Reset", buttonX + buttonWidth/2, buttonY + buttonHeight/2);
+  textStyle(NORMAL);
   
   // Store button bounds for interaction
   resetButtonBounds = {
@@ -1763,22 +1849,60 @@ function drawResetButton() {
 }
 
 function resetSimulation() {
+  // Reset slider values
   sliderAValue = 0.3;
   sliderBValue = 0.3;
+  
+  // Reset valve positions
   valveAPosition = 0;
   valveBPosition = 0;
+  
+  // Reset tank liquid levels
   tankALiquidLevel = 0.85;
   tankBLiquidLevel = 0.85;
-  simpleTankLiquidLevel = 0.3;
+  simpleTankLiquidLevel = 0.65; // Changed from 0.3 to 0.65 to match SIMPLE_TANK_MAX_LEVEL
+  collectionTankLiquidLevel = 0;
+  
+  // Reset waterfall animations
   simpleTankWaterfallProgress = 0;
+  collectionTankWaterfallProgress = 0;
+  
+  // Reset rotor
   rotorAngle = 0;
   rotorOn = false;
+  
+  // Reset pump states
   pumpASwitchOn = false;
   pumpBSwitchOn = false;
+  
+  // Reset volume tracking
   tankADeltaV = 0;
   tankBDeltaV = 0;
   tankALastFlowTime = 0;
   tankBLastFlowTime = 0;
+  totalInletFlowRate = 0;
+  
+  // Reset temperature
+  temperatureValue = 130;
+  temperatureSet = false;
+  
+  // Reset concentration settings
+  concentrationSet = false;
+  
+  // Reset CSTR calculations
+  lastCalculationTime = millis();
+  currentCA1 = 0;
+  currentCB1 = 0;
+  accumulatedTime = 0;
+  
+  // Reset tank colors
+  lastCSTRColor = null;
+  lastCollectionColor = null;
+  
+  // Reset wave animation
+  waveOffset = 0;
+  
+  // Reset last update time
   lastUpdateTime = millis();
 }
 
@@ -1787,8 +1911,8 @@ function drawTemperatureMonitor(x, y, value) {
   stroke(0);
   strokeWeight(1);
   fill(220);
-  const monitorWidth = 60;
-  const monitorHeight = 32;
+  const monitorWidth = 70; // Increased from 60
+  const monitorHeight = 35; // Increased from 32
   rect(x - monitorWidth/2, y, monitorWidth, monitorHeight, 5);
   fill(0);
   noStroke();
@@ -1802,8 +1926,8 @@ function drawVolumeMonitor(x, y, value) {
   stroke(0);
   strokeWeight(1);
   fill(220);
-  const monitorWidth = 50;
-  const monitorHeight = 30;
+  const monitorWidth = 65; // Increased from 50
+  const monitorHeight = 35; // Increased from 30
   rect(x, y, monitorWidth, monitorHeight, 5);
   
   // Display value in ml
