@@ -19,6 +19,7 @@ window.setup = function() {
   const { width, height } = setupCanvas(containerElement);
   state.canvasSize = [width, height];
   setupHamburgerMenu();
+  windowResized();
 };
 
 window.draw = function() {
@@ -31,13 +32,13 @@ window.draw = function() {
 function setupHamburgerMenu() {
   const hamburger = document.getElementById('hamburger-icon');
   const controls = document.getElementById('controls');
-  
+
   hamburger.addEventListener('click', () => {
     state.hamburgerHasBeenClicked = !state.hamburgerHasBeenClicked;
     window.localStorage.setItem("hamburgerHasBeenClicked", state.hamburgerHasBeenClicked);
     controls.style.display = state.hamburgerHasBeenClicked ? 'block' : 'none';
   });
-  
+
   controls.style.display = state.hamburgerHasBeenClicked ? 'block' : 'none';
 }
 
