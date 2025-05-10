@@ -18,7 +18,6 @@ window.setup = function() {
   sizeContainer();
   const { width, height } = setupCanvas(containerElement);
   state.canvasSize = [width, height];
-  setupHamburgerMenu();
 };
 
 window.draw = function() {
@@ -26,20 +25,6 @@ window.draw = function() {
   const height = containerElement.offsetHeight;
   drawSimulation(width, height);
 };
-
-// Function to setup hamburger menu
-function setupHamburgerMenu() {
-  const hamburger = document.getElementById('hamburger-icon');
-  const controls = document.getElementById('controls');
-  
-  hamburger.addEventListener('click', () => {
-    state.hamburgerHasBeenClicked = !state.hamburgerHasBeenClicked;
-    window.localStorage.setItem("hamburgerHasBeenClicked", state.hamburgerHasBeenClicked);
-    controls.style.display = state.hamburgerHasBeenClicked ? 'block' : 'none';
-  });
-  
-  controls.style.display = state.hamburgerHasBeenClicked ? 'block' : 'none';
-}
 
 window.windowResized = () => {
   const width = containerElement.offsetWidth;

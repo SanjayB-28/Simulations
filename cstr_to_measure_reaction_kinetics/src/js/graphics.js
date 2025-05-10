@@ -7,6 +7,9 @@ let valveAPosition = 0;      // NaOH valve (0 to -π/2)
 let valveBPosition = 0;      // CH₃COOCH₃ valve (0 to -π/2)
 let waveOffset = 0;          // Liquid surface animation
 
+// Add vertical offset constant
+const VERTICAL_OFFSET = -50; // Negative value moves everything up
+
 // Tank levels (0 to 1)
 let tankALiquidLevel = 0.85; // NaOH tank
 let tankBLiquidLevel = 0.85; // CH₃COOCH₃ tank
@@ -30,9 +33,9 @@ let setButtonBounds = null;             // Concentration set
 let tempSetButtonBounds = null;         // Temperature set
 
 // Control states
-let temperatureValue = 130;             // Temperature (°F)
-let temperatureSet = false;             // Temp set state
-let concentrationSet = false;           // Conc set state
+let temperatureValue = 55;             // Temperature (°C) - default to middle of range
+let temperatureSet = false;            // Temp set state
+let concentrationSet = false;          // Conc set state
 
 // Interaction handles
 let tankAHandle = null;                 // NaOH valve
@@ -65,6 +68,18 @@ const FLOW_RATE_FACTOR = 0.0000003;     // Flow scaling
 const MAX_FLOW_RATE = 60;               // Max flow (ml/s)
 const SIMPLE_TANK_MAX_LEVEL = 0.65;     // Max CSTR level
 const SIMPLE_TANK_FILL_RATE = 0.0005;   // CSTR fill rate
+
+// Add these global variables at the top with other state variables
+let isDraggingValveA = false;
+let isDraggingValveB = false;
+let lastVolumeUpdateTime = 0;
+let displayTankADeltaV = 0;
+let displayTankBDeltaV = 0;
+let displayCA1 = 0;
+let displayCB1 = 0;
+
+// Import hamburger menu functions
+import { drawHamburgerMenu, handleHamburgerClick } from './hamburger';
 
 function drawValveMonitor(x, y, value) {
   // Monitor box
@@ -557,9 +572,9 @@ function drawOutletPipe(x, y, pipeWidth, valvePosition, label) {
   
   // Draw monitor and wire first (before the switch)
   if (label === "Tank A") {
-    // Draw monitor further to the left
+    // Draw monitor further to the left and higher up
     const monitorX = x - valveSize - 100;
-    const monitorY = valveY - valveSize/2;
+    const monitorY = valveY - valveSize; // Moved up from valveSize/2 to valveSize
     
     // Draw wavy connecting wire to monitor
     stroke(100);
@@ -574,7 +589,8 @@ function drawOutletPipe(x, y, pipeWidth, valvePosition, label) {
     
     for (let i = 0; i <= segments; i++) {
       const xPos = wireStartX + (wireLength * i/segments);
-      const yPos = valveY + Math.sin(i * Math.PI/2) * amplitude;
+      // Adjust Y position to start from valve level and curve up to monitor
+      const yPos = valveY + (monitorY - valveY) * (i/segments) + Math.sin(i * Math.PI/2) * amplitude;
       vertex(xPos, yPos);
     }
     endShape();
@@ -639,13 +655,15 @@ function drawOutletPipe(x, y, pipeWidth, valvePosition, label) {
   const handleWidth = 20;
   
   // Calculate handle end position for hit detection
-  const handleEndX = x + handleLength * Math.cos(valvePosition);
-  const handleEndY = valveY + handleLength * Math.sin(valvePosition);
+  // Map valvePosition from 0 to -π/2 to -π to 0 (left to right, rotating up)
+  const mappedAngle = map(valvePosition, 0, -Math.PI/2, -Math.PI, 0);
+  const handleEndX = x + handleLength * Math.cos(mappedAngle);
+  const handleEndY = valveY + handleLength * Math.sin(mappedAngle);
   
   // Draw handle as a rectangle with blue tint (same as valve body)
   push();
   translate(x, valveY);
-  rotate(valvePosition);
+  rotate(mappedAngle); // Use mapped angle for rotation
   fill(100, 150, 255); // Blue, same as valve body
   rect(0, -handleWidth/2, handleLength, handleWidth, 5);
   
@@ -943,7 +961,7 @@ window.mouseDragged = function() {
 function handleInteractions() {
   const tankAX = width * 0.15;
   const tankBX = width * 0.30;
-  const tankY = height * 0.4;
+  const tankY = height * 0.4 + VERTICAL_OFFSET; // Add offset here
   const tankH = height * 0.35;
   const tankW = width * 0.12;
   const pipeHeight = 150;
@@ -952,8 +970,8 @@ function handleInteractions() {
   // These must match drawSlider
   const sliderTrackRadius = 8;
   const sliderTrackW = tankW;
-  const sliderAY = tankY - tankH/2 - 40 - 30; // y used in drawSlider
-  const sliderBY = tankY - tankH/2 - 40 - 30;
+  const sliderAY = tankY - tankH/2 - 40; // Removed -30 to align with visual position
+  const sliderBY = tankY - tankH/2 - 40; // Removed -30 to align with visual position
   const sliderATrackLeft = tankAX - sliderTrackW/2 + sliderTrackRadius;
   const sliderATrackRight = tankAX + sliderTrackW/2 - sliderTrackRadius;
   const sliderBTrackLeft = tankBX - sliderTrackW/2 + sliderTrackRadius;
@@ -987,35 +1005,60 @@ function handleInteractions() {
   }
 
   // Check valve handle interactions
-  function updateValvePosition(handle, setPosition, isPumpOn) {
-    if (!handle || isPumpOn) return; // Don't allow valve adjustment if pump is on
+  function updateValvePosition(handle, setPosition, isPumpOn, isDragging) {
+    if (!handle || isPumpOn) return false; // Don't allow valve adjustment if pump is on
     const { centerX, centerY } = handle;
-    if (dist(mouseX, mouseY, handle.x, handle.y) < 9) {
+    
+    // Increase the interaction radius for stronger interaction
+    const handleRadius = 20; // Increased from 15 to 20 for larger interaction area
+    
+    // Check if we're either clicking the handle or already dragging
+    if (dist(mouseX, mouseY, handle.x, handle.y) < handleRadius || isDragging) {
       const deltaX = mouseX - centerX;
       const deltaY = mouseY - centerY;
       let angle = Math.atan2(deltaY, deltaX);
-      // Normalize angle to 0 to -PI/2 range (right to up)
-      if (angle > 0) angle = 0;
-      if (angle < -Math.PI/2) angle = -Math.PI/2;
+      
+      // Normalize angle to be between -π and π
+      angle = (angle + Math.PI) % (2 * Math.PI) - Math.PI;
+      
+      // Only allow rotation in the correct direction (counter-clockwise from left to right)
+      // If trying to rotate clockwise (angle > 0), ignore the movement
+      if (angle > 0) return isDragging; // Return current drag state if trying to rotate wrong way
+      
+      // Map angle from -π to 0 to 0 to -π/2 range (left to right, rotating up)
+      angle = map(angle, -Math.PI, 0, 0, -Math.PI/2);
+      
+      // Ensure the angle can reach both extremes with a small threshold
+      if (angle > -0.01) angle = 0; // Fully closed
+      if (angle < -Math.PI/2 + 0.01) angle = -Math.PI/2; // Fully open
+      
       setPosition(angle);
+      return true; // Return true to indicate we're dragging
     }
+    return false; // Return false to indicate we're not dragging
   }
-  updateValvePosition(window.tankAHandle, (angle) => { valveAPosition = angle; }, pumpASwitchOn);
-  updateValvePosition(window.tankBHandle, (angle) => { valveBPosition = angle; }, pumpBSwitchOn);
+
+  // Update valve positions and track drag state
+  const newValveAPosition = updateValvePosition(window.tankAHandle, (angle) => { valveAPosition = angle; }, pumpASwitchOn, isDraggingValveA);
+  const newValveBPosition = updateValvePosition(window.tankBHandle, (angle) => { valveBPosition = angle; }, pumpBSwitchOn, isDraggingValveB);
+  
+  // Update drag states
+  isDraggingValveA = newValveAPosition;
+  isDraggingValveB = newValveBPosition;
 
   // --- TEMPERATURE SLIDER LOGIC ---
   // These must match drawSlider for the temperature slider
-  const tempSliderX = width - 200; // Changed from -172 to -200 to move left
-  const tempSliderY = tankY - tankH/2 - 40;
+  const tempSliderX = width - 185; // Moved from -200 to -185
+  const tempSliderY = tankY - tankH/2 - 30; // Removed -30 to align with visual position
   const tempSliderW = width * 0.12;
   const tempSliderTrackLeft = tempSliderX - tempSliderW/2 + sliderTrackRadius;
   const tempSliderTrackRight = tempSliderX + tempSliderW/2 - sliderTrackRadius;
   if (!temperatureSet) {
     if (Math.abs(mouseY - (tempSliderY - 30)) < 18) {
       if (mouseX >= tempSliderTrackLeft - sliderHandleRadius && mouseX <= tempSliderTrackRight + sliderHandleRadius) {
-        // Map mouseX to temperature value (80 to 180)
-        temperatureValue = map(mouseX, tempSliderTrackLeft, tempSliderTrackRight, 80, 180);
-        temperatureValue = constrain(temperatureValue, 80, 180);
+        // Map mouseX to temperature value (25 to 85 °C)
+        temperatureValue = map(mouseX, tempSliderTrackLeft, tempSliderTrackRight, 25, 85);
+        temperatureValue = constrain(temperatureValue, 25, 85);
         return;
       }
     }
@@ -1034,6 +1077,15 @@ export function drawSimulation(width, height) {
   const currentTime = millis();
   const deltaTime = (currentTime - lastUpdateTime) / 1000; // Convert to seconds
   lastUpdateTime = currentTime;
+
+  // Update displayed values every 500ms
+  if (currentTime - lastVolumeUpdateTime >= 500) {
+    displayTankADeltaV = Math.round(tankADeltaV);
+    displayTankBDeltaV = Math.round(tankBDeltaV);
+    displayCA1 = currentCA1;
+    displayCB1 = currentCB1;
+    lastVolumeUpdateTime = currentTime;
+  }
 
   // Calculate flow rates based on valve positions and pump states
   const currentFlowRateA = pumpASwitchOn ? map(Math.abs(valveAPosition), 0, Math.PI/2, 0, MAX_FLOW_RATE) : 0;
@@ -1059,7 +1111,7 @@ export function drawSimulation(width, height) {
   
   const tankAX = width * 0.15;
   const tankBX = width * 0.30;
-  const tankY = height * 0.4;
+  const tankY = height * 0.42 + VERTICAL_OFFSET; // Add offset here
   const tankW = width * 0.12;
   const tankH = height * 0.35;
   
@@ -1091,8 +1143,8 @@ export function drawSimulation(width, height) {
   noStroke();
   textAlign(CENTER, BOTTOM);
   textSize(12);
-  text("NaOH ΔV", volumeMonitorAX + 35, volumeMonitorAY - 5); // Changed from +25 to +35
-  drawVolumeMonitor(volumeMonitorAX, volumeMonitorAY, tankADeltaV);
+  text("NaOH ΔV", volumeMonitorAX + 35, volumeMonitorAY - 5);
+  drawVolumeMonitor(volumeMonitorAX, volumeMonitorAY, displayTankADeltaV);
   
   // Draw Tank B (right tank) with green liquid
   const tankBColor = color(200 - sliderBValue * 100, 255 - sliderBValue * 100, 220 - sliderBValue * 100, 200);
@@ -1131,8 +1183,8 @@ export function drawSimulation(width, height) {
   noStroke();
   textAlign(CENTER, BOTTOM);
   textSize(12);
-  text("CH₃COOCH₃ ΔV", volumeMonitorBX + 35, volumeMonitorBY - 5); // Changed from +25 to +35
-  drawVolumeMonitor(volumeMonitorBX, volumeMonitorBY, tankBDeltaV);
+  text("CH₃COOCH₃ ΔV", volumeMonitorBX + 35, volumeMonitorBY - 5);
+  drawVolumeMonitor(volumeMonitorBX, volumeMonitorBY, displayTankBDeltaV);
   
   // Calculate blended color for final tank based on concentrations
   const totalConcentration = sliderAValue + sliderBValue;
@@ -1180,8 +1232,8 @@ export function drawSimulation(width, height) {
 
   // Temperature slider and Set button
   const tempSliderW = width * 0.12;
-  const tempSliderX = width - 185; // Changed from -200 to -185 to move right
-  drawSlider(tempSliderX, sliderYCommon, tempSliderW, temperatureValue, 'Temperature (°F)', temperatureValue, 80, 180, temperatureSet);
+  const tempSliderX = width - 185; // Match the position in handleInteractions
+  drawSlider(tempSliderX, sliderYCommon, tempSliderW, temperatureValue, 'Temperature (°C)', temperatureValue, 25, 85, temperatureSet);
   const tempSetButtonW = 60;
   const tempSetButtonH = 32;
   const tempSetButtonX = tempSliderX + tempSliderW/2 + 18;
@@ -1213,8 +1265,8 @@ export function drawSimulation(width, height) {
   const collectionTankWLocal = width * 0.12;
   const pipeLength = collectionTankWLocal * 0.3;
   const wall = Math.max(4, collectionTankWLocal * 0.035);
-  const collectionTankX = tankX + collectionTankWLocal/2 + pipeLength; // Align with vertical pipe
-  const collectionTankY = height * 0.83;
+  const collectionTankX = tankX + collectionTankWLocal/2 + pipeLength + 40; // Increased from +20 to +40 to move tank further right
+  const collectionTankY = height * 0.85 + VERTICAL_OFFSET;
   const collectionTankW = collectionTankWLocal;
   const collectionTankH = height * 0.2;
   // Default liquid level is 0
@@ -1236,7 +1288,7 @@ export function drawSimulation(width, height) {
   drawCollectionTank(collectionTankX, collectionTankY, collectionTankW, collectionTankH, collectionTankLevel, collectionTankColor);
 
   // Draw flow from downward pipe to collection tank if there is outflow
-  const downwardPipeX = collectionTankX + 5; // Shift flow 5px to the right
+  const downwardPipeX = collectionTankX-3.5; // Shift flow 15px to the right (changed from 5)
   const pipeWidth = width * 0.012; // Matches outlet pipe width
   const collectionTankWall = Math.max(4, collectionTankW/10);
   const downwardPipeTop = collectionTankY - collectionTankH/2 - 1;
@@ -1280,102 +1332,84 @@ export function drawSimulation(width, height) {
   
   if (timeSinceLastCalc >= 0.1) { // Update every 100ms
     if ((pumpASwitchOn && currentFlowRateA > 0) || (pumpBSwitchOn && currentFlowRateB > 0)) {
-      accumulatedTime += timeSinceLastCalc; // Accumulate time for continuous calculation
+      accumulatedTime += timeSinceLastCalc;
       const cstrResult = run_CSTR({
-        t: accumulatedTime, // Use accumulated time for continuous calculation
-        T: temperatureValue + 459.67, // Convert F to K
+        t: accumulatedTime,
+        T: temperatureValue + 273.15, // Convert °C to K
         CAf: sliderAValue,
         CBf: sliderBValue,
-        vA: currentFlowRateA / 1000, // Convert ml/s to L/s
-        vB: currentFlowRateB / 1000  // Convert ml/s to L/s
+        vA: currentFlowRateA / 1000,
+        vB: currentFlowRateB / 1000
       });
       
       // Update the values
-      currentCA1 = cstrResult.CC; // CC is CA1 (CH3COONa)
-      currentCB1 = cstrResult.CD; // CD is CB1 (CH3OH)
+      currentCA1 = cstrResult.CC;
+      currentCB1 = cstrResult.CD;
     }
-    // No else block - values will be maintained when pumps are off
     lastCalculationTime = calcTime;
   }
 
   // Draw CA1 and CB1 indicators to the left of the collection tank
   const indicatorW = 65;
   const indicatorH = 35;
-  const indicatorX = collectionTankX - collectionTankW/2 - indicatorW - 38;
-  const indicatorY1 = collectionTankY - 60 + 35;
-  const indicatorY2 = collectionTankY + 22 + 25;
+  const baseX = collectionTankX - collectionTankW/2 - indicatorW - 205; // Changed from -185 to -205 to move monitors further left
+  const baseY = collectionTankY + 5 + VERTICAL_OFFSET;
   
-  // CA1 label above box
+  // Draw line from CH₃COONa monitor
+  stroke(0);
+  strokeWeight(1);
+  noFill();
+  // Horizontal line from left monitor
+  line(baseX, baseY + indicatorH/2, baseX - 40, baseY + indicatorH/2);
+  // Vertical line going up from left monitor
+  line(baseX - 40, baseY + indicatorH/2, baseX - 40, baseY - 160);
+  // Add dot at the end of vertical line
+  fill(0);
+  circle(baseX - 40, baseY - 160, 4);
+  
+  // Draw line from CH₃OH monitor
+  // Horizontal line from right monitor
+  line(baseX + indicatorW * 1.7 + indicatorW, baseY + indicatorH/2, baseX + indicatorW * 1.7 + indicatorW + 25, baseY + indicatorH/2);
+  // Vertical line going up from right monitor
+  line(baseX + indicatorW * 1.7 + indicatorW + 25, baseY + indicatorH/2, baseX + indicatorW * 1.7 + indicatorW + 25, baseY - 160);
+  // Add dot at the end of vertical line
+  fill(0);
+  circle(baseX + indicatorW * 1.7 + indicatorW + 25, baseY - 160, 4);
+  
+  // CA1 monitor (left)
   fill(0);
   noStroke();
   textAlign(CENTER, BOTTOM);
   textSize(13);
-  text('CH₃COONa (mol/L)', indicatorX + indicatorW/2, indicatorY1 - 5);
-  // CA1 box
+  text('CH₃COONa (mol/L)', baseX + indicatorW/2, baseY - 5);
   stroke(0);
   strokeWeight(1);
   fill(220);
-  rect(indicatorX, indicatorY1, indicatorW, indicatorH, 5);
+  rect(baseX, baseY, indicatorW, indicatorH, 5);
   fill(0);
   noStroke();
   textAlign(CENTER, CENTER);
   textSize(14);
-  text(currentCA1.toFixed(4), indicatorX + indicatorW/2, indicatorY1 + indicatorH/2);
+  text(displayCA1.toFixed(4), baseX + indicatorW/2, baseY + indicatorH/2);
   
-  // CB1 label above box
+  // CB1 monitor (right)
   fill(0);
   noStroke();
   textAlign(CENTER, BOTTOM);
   textSize(13);
-  text('CH₃OH (mol/L)', indicatorX + indicatorW/2, indicatorY2 - 5);
-  // CB1 box
+  text('CH₃OH (mol/L)', baseX + indicatorW * 2.2, baseY - 5);
   stroke(0);
   strokeWeight(1);
   fill(220);
-  rect(indicatorX, indicatorY2, indicatorW, indicatorH, 5);
+  rect(baseX + indicatorW * 1.7, baseY, indicatorW, indicatorH, 5);
   fill(0);
   noStroke();
   textAlign(CENTER, CENTER);
   textSize(14);
-  text(currentCB1.toFixed(4), indicatorX + indicatorW/2, indicatorY2 + indicatorH/2);
+  text(displayCB1.toFixed(4), baseX + indicatorW * 1.7 + indicatorW/2, baseY + indicatorH/2);
 
-  // Draw polyline wires from indicators to collection tank wall
-  stroke(100);
-  strokeWeight(1);
-  // CA1 polyline wire
-  let startX1 = indicatorX + indicatorW;
-  let startY1 = indicatorY1 + indicatorH/2;
-  let endX1 = collectionTankX - collectionTankW/2;
-  let endY1 = startY1;
-  let segments = 6;
-  let amplitude = 8;
-  let points1 = [];
-  for (let i = 0; i <= segments; i++) {
-    let t = i / segments;
-    let x = startX1 + (endX1 - startX1) * t;
-    let y = startY1 + (i % 2 === 0 ? amplitude : -amplitude);
-    if (i === 0 || i === segments) y = startY1; // start and end flat
-    points1.push([x, y]);
-  }
-  for (let i = 0; i < points1.length - 1; i++) {
-    line(points1[i][0], points1[i][1], points1[i+1][0], points1[i+1][1]);
-  }
-  // CB1 polyline wire
-  let startX2 = indicatorX + indicatorW;
-  let startY2 = indicatorY2 + indicatorH/2;
-  let endX2 = collectionTankX - collectionTankW/2;
-  let endY2 = startY2;
-  let points2 = [];
-  for (let i = 0; i <= segments; i++) {
-    let t = i / segments;
-    let x = startX2 + (endX2 - startX2) * t;
-    let y = startY2 + (i % 2 === 0 ? amplitude : -amplitude);
-    if (i === 0 || i === segments) y = startY2; // start and end flat
-    points2.push([x, y]);
-  }
-  for (let i = 0; i < points2.length - 1; i++) {
-    line(points2[i][0], points2[i][1], points2[i+1][0], points2[i+1][1]);
-  }
+  // Draw hamburger menu last to ensure it's on top
+  drawHamburgerMenu();
 }
 
 // Export slider values for external use
@@ -1607,7 +1641,7 @@ function drawSimpleTank(x, y, w, h, liquidLevel, liquidColor, canvasWidth) {
 
   // Add outlet pipe on the right wall
   const pipeWidth = canvasWidth * 0.012; // Matches the feed tank pipe width exactly
-  const pipeLength = w * 0.3;
+  const pipeLength = w * 0.4; // Increased from 0.3 to 0.4 to make the pipe longer
   // Position pipe at exactly the same level as the inlet pipe
   const pipeY = y - h/2 + 120; // Lowered from 60 to 80 to move pipe down
   
@@ -1791,6 +1825,11 @@ function drawSimpleTank(x, y, w, h, liquidLevel, liquidColor, canvasWidth) {
 // Refactor mousePressed handler to check all switches and only return after toggling the correct one
 const oldMousePressed = window.mousePressed;
 window.mousePressed = function() {
+  // Check hamburger menu first
+  if (handleHamburgerClick(mouseX, mouseY)) {
+    return;
+  }
+  
   // Check reset button
   if (resetButtonBounds && 
       mouseX >= resetButtonBounds.x && 
@@ -1817,6 +1856,12 @@ window.mousePressed = function() {
     toggled = true;
   }
   if (!toggled && typeof oldMousePressed === 'function') oldMousePressed();
+};
+
+// Add mouseReleased handler to reset drag states
+window.mouseReleased = function() {
+  isDraggingValveA = false;
+  isDraggingValveB = false;
 };
 
 function drawResetButton() {
@@ -1878,12 +1923,17 @@ function resetSimulation() {
   // Reset volume tracking
   tankADeltaV = 0;
   tankBDeltaV = 0;
+  displayTankADeltaV = 0;
+  displayTankBDeltaV = 0;
+  displayCA1 = 0;
+  displayCB1 = 0;
   tankALastFlowTime = 0;
   tankBLastFlowTime = 0;
   totalInletFlowRate = 0;
+  lastVolumeUpdateTime = 0;
   
   // Reset temperature
-  temperatureValue = 130;
+  temperatureValue = 55; // Default to middle of range (25-85 °C)
   temperatureSet = false;
   
   // Reset concentration settings
@@ -1911,14 +1961,14 @@ function drawTemperatureMonitor(x, y, value) {
   stroke(0);
   strokeWeight(1);
   fill(220);
-  const monitorWidth = 70; // Increased from 60
-  const monitorHeight = 35; // Increased from 32
+  const monitorWidth = 70;
+  const monitorHeight = 35;
   rect(x - monitorWidth/2, y, monitorWidth, monitorHeight, 5);
   fill(0);
   noStroke();
   textAlign(CENTER, CENTER);
   textSize(14);
-  text(value.toFixed(1) + " °F", x, y + monitorHeight/2);
+  text(value.toFixed(1) + " °C", x, y + monitorHeight/2);
 }
 
 function drawVolumeMonitor(x, y, value) {
@@ -1926,16 +1976,16 @@ function drawVolumeMonitor(x, y, value) {
   stroke(0);
   strokeWeight(1);
   fill(220);
-  const monitorWidth = 65; // Increased from 50
-  const monitorHeight = 35; // Increased from 30
+  const monitorWidth = 65;
+  const monitorHeight = 35;
   rect(x, y, monitorWidth, monitorHeight, 5);
   
-  // Display value in ml
+  // Display value in ml (no decimals)
   fill(0);
   noStroke();
   textAlign(CENTER, CENTER);
   textSize(12);
-  text(value.toFixed(1) + " ml", x + monitorWidth/2, y + monitorHeight/2);
+  text(value + " ml", x + monitorWidth/2, y + monitorHeight/2);
 }
 
 function drawCollectionTank(x, y, w, h, liquidLevel, liquidColor) {
