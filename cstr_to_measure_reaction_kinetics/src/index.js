@@ -15,24 +15,28 @@ window.state = {
 const containerElement = document.getElementById("p5-container");
 
 window.setup = function() {
-  sizeContainer();
-  const { width, height } = setupCanvas(containerElement);
-  state.canvasSize = [width, height];
+  setupCanvas(containerElement);
+  windowResized();
 };
 
 window.draw = function() {
-  const width = containerElement.offsetWidth;
-  const height = containerElement.offsetHeight;
+  const width = state.canvasSize[0];
+  const height = state.canvasSize[1];
+  window.width = width;
+  window.height = height;
+  window.mX = mouseX / relativeSize();
+  window.mY = mouseY / relativeSize();
+  scale(relativeSize());
+  console.log(relativeSize());
   drawSimulation(width, height);
 };
 
 window.windowResized = () => {
   const width = containerElement.offsetWidth;
   const height = containerElement.offsetHeight;
-  state.canvasSize = [width, height];
   resizeCanvas(width, height);
 }
 
-function sizeContainer() {
-  // No need to resize container anymore since it's handled by CSS
+window.relativeSize = () => {
+  return containerElement.offsetWidth / state.canvasSize[0];
 }

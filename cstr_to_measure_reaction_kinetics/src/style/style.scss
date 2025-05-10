@@ -4,7 +4,8 @@ $modal-lg: 820px;
 $modal-xl: 1140px;
 @import "bootstrap";
 @import "./slider.scss"; // Keeping slider styling in place if needed for other inputs
-body, html {
+body,
+html {
   margin: 0;
   padding: 0;
   width: 100%;
@@ -29,10 +30,10 @@ body, html {
 
 #simulation-container {
   position: relative;
-  width: calc(100% - 40px);
+  width: calc(100vw - 40px);
   height: calc(100vh - 40px);
-  max-width: 1400px;
-  max-height: 1000px;
+  max-width: calc(calc(100vh - 40px) * 1400 / 1000);
+  max-height: calc(calc(100vw - 40px) * 1000 / 1400);
   background-color: white;
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
   border-radius: 5px;
