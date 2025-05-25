@@ -99,7 +99,7 @@ function drawValveMonitor(x, y, value) {
   fill(0);
   noStroke();
   textAlign(CENTER, CENTER);
-  textSize(16);
+  textSize(18); // Increased text size for flow rate
   // Map from 0 to π/2 to 0 to MAX_FLOW_RATE, scaling the input range
   const flowRate = map(Math.abs(value), 0, Math.PI / 2, 0, MAX_FLOW_RATE) * (Math.PI / 2);
   text(flowRate.toFixed(1) + " mL/s", x + monitorWidth / 2, y + monitorHeight / 2);
@@ -453,7 +453,7 @@ function drawPump(x, y, size, pipeWidth, label) {
   let switchY, bounds;
   if (label === 'Tank A') {
     // Switch below pump
-    switchY = y + size * 0.9;
+    switchY = y + size * 1.4; // Moved switch down
     bounds = drawRotorSwitch(x, y, switchY, pumpASwitchOn, true);
     pumpASwitchBounds = bounds;
     // Draw wire
@@ -470,7 +470,7 @@ function drawPump(x, y, size, pipeWidth, label) {
     endShape();
   } else if (label === 'Tank B') {
     // Switch above pump (more space)
-    switchY = y - size * 2.2;
+    switchY = y - size * 2.8; // Moved switch up
     bounds = drawRotorSwitch(x, y, switchY, pumpBSwitchOn, true);
     pumpBSwitchBounds = bounds;
     // Draw wire
@@ -610,7 +610,7 @@ function drawOutletPipe(x, y, pipeWidth, valvePosition, label) {
     fill(0);
     noStroke();
     textAlign(LEFT, CENTER);
-    textSize(16);
+    textSize(18); // Increased text size for label
     text("NaOH flow rate", monitorX - 20, monitorY - 15);
   } else if (label === "Tank B") {
     // Move monitor up for Tank B
@@ -642,7 +642,7 @@ function drawOutletPipe(x, y, pipeWidth, valvePosition, label) {
     fill(0);
     noStroke();
     textAlign(LEFT, CENTER);
-    textSize(16);
+    textSize(18); // Increased text size for label
     text("CH₃COOCH₃ flow rate", monitorX-30, monitorY - 15);
   }
 
@@ -759,29 +759,22 @@ function drawStand(x, y, w, h) {
 
 function drawSlider(x, y, w, value, label, displayValue, min = 0.1, max = 0.5, disabled = false) {
   const sliderY = y - 30;
-  // Draw slider track with rounded ends
-  stroke(40);
-  strokeWeight(4);
-  fill(230);
-  const trackRadius = 8;
+  // Draw slider track (simple grey bar)
+  stroke(180); // Grey stroke
+  strokeWeight(6); // Thicker stroke like in the image
+  noFill(); // No fill for a simple bar
   const trackY = sliderY;
-  const trackLeft = x - w / 2;
-  const trackRight = x + w / 2;
-  line(trackLeft + trackRadius, trackY, trackRight - trackRadius, trackY);
-  ellipse(trackLeft + trackRadius, trackY, trackRadius * 2, trackRadius * 2);
-  ellipse(trackRight - trackRadius, trackY, trackRadius * 2, trackRadius * 2);
 
-  // Draw tick marks
-  stroke(100);
-  strokeWeight(1);
-  for (let i = 0; i <= 5; i++) {
-    const tx = map(i, 0, 5, trackLeft + trackRadius, trackRight - trackRadius);
-    line(tx, trackY - 4, tx, trackY + 4); // Reduced from -7,7 to -4,4
-  }
+  // Draw simple grey bar
+  const barHeight = 6; // Match stroke weight for a solid bar appearance
+  const barWidth = w;
+  rectMode(CENTER);
+  rect(x, trackY, barWidth, barHeight, barHeight / 2); // Rounded ends
+  rectMode(CORNER); // Reset rectMode to default
 
   // Draw slider handle (3D look)
-  const handleX = map(value, min, max, trackLeft + trackRadius, trackRight - trackRadius);
-  const handleR = 13;
+  const handleX = map(value, min, max, x - w / 2, x + w / 2); // Map value across the full bar width
+  const handleR = 20; // Increased handle size
   // Shadow
   noStroke();
   if (!disabled) {
@@ -791,7 +784,7 @@ function drawSlider(x, y, w, value, label, displayValue, min = 0.1, max = 0.5, d
   // Handle
   stroke(40);
   strokeWeight(2);
-  fill(disabled ? 180 : color(102, 155, 188)); // Changed from gold to navy blue color
+  fill(disabled ? 180 : color(102, 155, 188)); // Navy blue color
   ellipse(handleX, trackY, handleR, handleR);
 
   // Draw value display box
@@ -802,7 +795,7 @@ function drawSlider(x, y, w, value, label, displayValue, min = 0.1, max = 0.5, d
   noStroke();
   fill(0);
   textAlign(CENTER, CENTER);
-  textSize(16);
+  textSize(18); // Increased text size for value
   if (displayValue !== undefined) {
     text(Math.round(displayValue), handleX, trackY - 24);
   } else {
@@ -813,15 +806,15 @@ function drawSlider(x, y, w, value, label, displayValue, min = 0.1, max = 0.5, d
   noStroke();
   fill(0);
   textAlign(CENTER, TOP);
-  textSize(16); // Increased from 11 to 14
+  textSize(18); // Increased text size for label
   text(label, x, trackY + 15);
 }
 
-function drawLiquid(x, y, w, h, level, color, wave = true) {
+function drawLiquid(x, y, w, h, level, color, applyWave = true) {
   // Calculate total liquid height
   const totalHeight = h;
   const liquidHeight = totalHeight * level;
-  const waveHeight = wave ? 0.8 : 0; // Reduced from 1.5 to 0.8 for flatter waves
+  const waveHeight = applyWave ? 0.8 : 0; // Reduced from 1.5 to 0.8 for flatter waves
   const segments = 20;
   
   fill(color);
@@ -904,7 +897,7 @@ export function drawTank(x, y, w, h, label, liquidColor, isFirstTank, liquidLeve
   // Markings every 1000 ml (1L)
   const volumesToMark = [];
   for (let v = 0; v <= TANK_VOLUME; v += 1000) {
-    volumesToMark.push(v);
+     volumesToMark.push(v);
   }
 
   for (let i = 0; i < volumesToMark.length; i++) {
@@ -919,13 +912,13 @@ export function drawTank(x, y, w, h, label, liquidColor, isFirstTank, liquidLeve
     const volumeInL = volume / 1000;
     const tickLength = (volumeInL % 2 === 0) ? 50 : 25; // Longer for even liters, shorter for odd - Increased size even more
     
-    strokeWeight(2.5); // Reduced thickness for lines
+    strokeWeight(2); // Reduced thickness for lines
     line(x - tickLength / 2, markY, x + tickLength / 2, markY); // Centered tick marks
 
     // Only draw text label for even liter markings
     if (volumeInL % 2 === 0) {
-      strokeWeight(1); // Reset stroke weight for text outline
-      text(volumeInL + " L", x + tickLength / 2 + 5, markY - 4); // Position text to the right of the mark, moved up by 5 pixels
+        strokeWeight(1); // Reset stroke weight for text outline
+        text(volumeInL + " L", x + tickLength / 2 + 5, markY - 4); // Position text to the right of the mark, moved up
     }
   }
   
@@ -938,7 +931,7 @@ export function drawTank(x, y, w, h, label, liquidColor, isFirstTank, liquidLeve
   fill(0);
   noStroke();
   textAlign(CENTER, CENTER);
-  textSize(h * 0.05);
+  textSize(h * 0.06); // Increased text size for labels
   text(label, x, y - h / 2 + 20);
 }
 
@@ -980,7 +973,7 @@ function handleInteractions() {
   const sliderATrackRight = extendedSliderX + extendedSliderWidth / 2 - sliderTrackRadius;
   const sliderBTrackLeft = extendedSliderX - extendedSliderWidth / 2 + sliderTrackRadius;
   const sliderBTrackRight = extendedSliderX + extendedSliderWidth / 2 - sliderTrackRadius;
-  const sliderHandleRadius = 13; // matches drawSlider
+  const sliderHandleRadius = 20; // matches drawSlider handleR
 
   // Only block slider logic if rotor is on
   if (!rotorOn) {
@@ -1147,7 +1140,7 @@ export function drawSimulation(width, height) {
   drawSlider(extendedSliderX, sliderYCommon - 80, extendedSliderWidth, sliderAValue, "NaOH (M)", undefined, 0.1, 0.5, rotorOn || concentrationSet);
 
   // Draw temperature slider next to NaOH slider
-  const tempSliderX = extendedSliderX + extendedSliderWidth + 20; // Position to the right of NaOH slider
+  const tempSliderX = extendedSliderX + extendedSliderWidth + 60; // Position to the right of NaOH slider - Increased offset further
   drawSlider(tempSliderX, sliderYCommon - 80, extendedSliderWidth, temperatureValue, 'temperature (°C)', temperatureValue, 25, 85, rotorOn || temperatureSet);
 
   // Draw CH₃COOCH₃ slider (bottom)
@@ -1156,7 +1149,7 @@ export function drawSimulation(width, height) {
   // Update temperature Set button position to match new slider position
   const tempSetButtonW = 60;
   const tempSetButtonH = 32;
-  const tempSetButtonX = tempSliderX + extendedSliderWidth / 2 + 18;
+  const tempSetButtonX = tempSliderX + extendedSliderWidth / 2 + 18; // Use updated tempSliderX
   const tempSetButtonY = sliderTrackY - tempSetButtonH / 2;
   tempSetButtonBounds = { x: tempSetButtonX, y: tempSetButtonY, w: tempSetButtonW, h: tempSetButtonH };
 
@@ -1335,8 +1328,6 @@ export function drawSimulation(width, height) {
   stroke(0);
   strokeWeight(1);
   noFill();
-  // Horizontal line from left monitor
-  line(baseX, baseY + indicatorH / 2, baseX - 40, baseY + indicatorH / 2);
   // Vertical line going up from left monitor
   line(baseX - 40, baseY + indicatorH / 2, baseX - 40, baseY - 160);
   // Add dot at the end of vertical line
@@ -1356,43 +1347,36 @@ export function drawSimulation(width, height) {
   fill(0);
   noStroke();
   textAlign(CENTER, BOTTOM);
-  textSize(16);
-  text('CH₃COONa (M)', baseX + indicatorW / 2, baseY - 5);
+  textSize(18); // Increased text size for label
+  text('CH₃COONa (M)', baseX + indicatorW / 2 - 65, baseY + indicatorH + 45); // Moved label further down below monitor, and left by 15
   stroke(0);
   strokeWeight(1);
   fill(220);
-  rect(baseX, baseY, indicatorW, indicatorH, 5);
+  rect(baseX - 40 - indicatorW / 2, baseY + indicatorH / 2, indicatorW, indicatorH, 5); // Move monitor to end of vertical line
   fill(0);
   noStroke();
   textAlign(CENTER, CENTER);
-  textSize(18);
-  text(displayCA1.toFixed(3), baseX + indicatorW / 2, baseY + indicatorH / 2);
+  textSize(20); // Increased text size for final concentration value
+  text(displayCA1.toFixed(3), baseX - 40, baseY + indicatorH); // Position value at the center of the monitor
 
   // CB1 monitor (right)
   fill(0);
   noStroke();
   textAlign(CENTER, BOTTOM);
-  textSize(16);
-  text('CH₃OH (M)', baseX + indicatorW * 2.2, baseY - 5);
+  textSize(18); // Increased text size for label
+  text('CH₃OH (M)', baseX + indicatorW * 2.2 + 55, baseY + indicatorH + 45); // Moved label further down below monitor, and right by 15
   stroke(0);
   strokeWeight(1);
   fill(220);
-  rect(baseX + indicatorW * 1.7, baseY, indicatorW, indicatorH, 5);
+  rect(baseX + indicatorW * 1.7 + indicatorW + 25 - indicatorW / 2, baseY + indicatorH / 2, indicatorW, indicatorH, 5); // Move monitor to end of vertical line
   fill(0);
   noStroke();
   textAlign(CENTER, CENTER);
-  textSize(18);
-  text(displayCB1.toFixed(3), baseX + indicatorW * 1.7 + indicatorW / 2, baseY + indicatorH / 2);
+  textSize(20); // Increased text size for final concentration value
+  text(displayCB1.toFixed(3), baseX + indicatorW * 1.7 + indicatorW + 25, baseY + indicatorH); // Position value at the center of the monitor
 
   // Draw hamburger menu last to ensure it's on top
   drawHamburgerMenu();
-
-  // Draw instructional text at the bottom
-  fill(40);
-  noStroke();
-  textAlign(CENTER, BOTTOM);
-  textSize(18);
-  text('Note: Set concentration and temperature, then turn on the stirrer. Next, set the flow rates and turn on the pumps', width / 2, height - 18);
 }
 
 // Export slider values for external use
@@ -1485,10 +1469,10 @@ function drawRotorSwitch(cx, topY, switchY, isOn, returnBounds = false) {
   strokeWeight(2);
   rect(cx - swWidth / 2, switchY, swWidth, swHeight, 8);
   // Draw mounting bolts
-  fill(120);
-  for (let i = 0; i < 2; i++) {
-    circle(cx - swWidth / 2 + 10 + i * (swWidth - 20), switchY + swHeight - 7, 7);
-  }
+  // fill(120);
+  // for (let i = 0; i < 2; i++) {
+  //   circle(cx - swWidth / 2 + 10 + i * (swWidth - 20), switchY + swHeight - 7, 7);
+  // }
   // Draw indicator lights
   fill(isOn ? 'yellow' : 'red');
   stroke(60);
@@ -1499,11 +1483,11 @@ function drawRotorSwitch(cx, topY, switchY, isOn, returnBounds = false) {
   // Draw ON/OFF labels inside the switch, near the left/right walls
   noStroke();
   fill(0);
-  textSize(10);
+  textSize(14); // Increased text size for ON/OFF labels
   textAlign(LEFT, CENTER);
-  text('OFF', cx - swWidth / 2 + 8, switchY + swHeight / 2 + 3); // Moved down by adding 3
+  text('OFF', cx - swWidth / 2 + 4, switchY + swHeight / 2 + 10); // Moved down by adding 3
   textAlign(RIGHT, CENTER);
-  text('ON', cx + swWidth / 2 - 8, switchY + swHeight / 2 + 3); // Moved down by adding 3
+  text('ON', cx + swWidth / 2 - 4, switchY + swHeight / 2 + 10); // Moved down by adding 3
   // Draw lever
   const leverAngle = isOn ? -PI / 4 : -3 * PI / 4;
   stroke(60);
@@ -1789,10 +1773,10 @@ function drawSimpleTank(x, y, w, h, liquidLevel, liquidColor, canvasWidth) {
   const shaftTopY = y - h / 2 + Math.max(4, w * 0.035) + 2;
   // Draw a wavy wire for realism
   beginShape();
-  for (let i = 0; i <= 20; i++) {
+  for (let i = 0; i <= 17; i++) {
     const t = i / 20;
     const wx = x;
-    const wy = switchY + 32 + (shaftTopY - (switchY + 32)) * t + Math.sin(t * 4 * Math.PI) * 6 * (1 - t);
+    const wy = switchY + 48 + (shaftTopY - (switchY + 32)) * t + Math.sin(t * 4 * Math.PI) * 6 * (1 - t);
     vertex(wx, wy);
   }
   endShape();
