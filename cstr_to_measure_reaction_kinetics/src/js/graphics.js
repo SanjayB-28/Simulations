@@ -750,7 +750,7 @@ function drawStand(x, y, w, h) {
   line(rightLegX - clampExtension, y - h / 4, rightLegX - clampExtension, y + h / 4);
   
   // Cross support between legs (for stability)
-  stroke(50); // Changed to lighter grey
+  stroke(100); // Changed to lighter grey
   strokeWeight(3); // Keep original stroke weight for cross supports
   line(leftLegX, y, rightLegX, y);
   line(leftLegX, y + h / 4, rightLegX, y - h / 4);
