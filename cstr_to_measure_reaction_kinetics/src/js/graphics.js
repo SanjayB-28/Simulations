@@ -919,7 +919,7 @@ export function drawTank(x, y, w, h, label, liquidColor, isFirstTank, liquidLeve
     const volumeInL = volume / 1000;
     const tickLength = (volumeInL % 2 === 0) ? 50 : 25; // Longer for even liters, shorter for odd - Increased size even more
     
-    strokeWeight(1); // Reduced thickness for lines
+    strokeWeight(2.5); // Reduced thickness for lines
     line(x - tickLength / 2, markY, x + tickLength / 2, markY); // Centered tick marks
 
     // Only draw text label for even liter markings
@@ -1164,12 +1164,12 @@ export function drawSimulation(width, height) {
   const volumeMonitorAX = tankAX - tankW - 20;
   const volumeMonitorAY = tankY;
   // Add label above monitor
-  fill(0);
-  noStroke();
-  textAlign(CENTER, BOTTOM);
-  textSize(12);
-  text("NaOH ΔV", volumeMonitorAX + 35, volumeMonitorAY - 5);
-  drawVolumeMonitor(volumeMonitorAX, volumeMonitorAY, displayTankADeltaV);
+  // fill(0);
+  // noStroke();
+  // textAlign(CENTER, BOTTOM);
+  // textSize(12);
+  // text("NaOH ΔV", volumeMonitorAX + 35, volumeMonitorAY - 5);
+  // drawVolumeMonitor(volumeMonitorAX, volumeMonitorAY, displayTankADeltaV);
 
   // Draw volume monitor for Tank B (right side)
   const volumeMonitorBX = tankBX + tankW - 40;
