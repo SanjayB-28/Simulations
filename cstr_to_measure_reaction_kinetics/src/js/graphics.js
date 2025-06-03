@@ -697,7 +697,7 @@ function drawSlider(x, y, w, value, label, displayValue, min = 0.1, max = 0.5, d
 
   // Draw slider handle (3D look)
   const handleX = map(value, min, max, x - w / 2, x + w / 2); // Map value across the full bar width
-  const handleR = 20; // Increased handle size
+  const handleR = 16; // Decreased handle size from 20 to 16
   // Shadow
   noStroke();
   if (!disabled) {
@@ -1733,10 +1733,11 @@ function drawResetButton() {
   fill(0); // Black text
   textAlign(CENTER, CENTER);
   textSize(20); // Increased from 14 to 18
-  textStyle(BOLD);
-  noStroke(); // Ensure no stroke on text
+  stroke(0); // Add black stroke for text
+  strokeWeight(1); // Set stroke weight to 2
   text("Reset", buttonX + buttonWidth / 2, buttonY + buttonHeight / 2);
   textStyle(NORMAL);
+  noStroke(); // Remove stroke after drawing text
 
   // Store button bounds for interaction
   resetButtonBounds = {
