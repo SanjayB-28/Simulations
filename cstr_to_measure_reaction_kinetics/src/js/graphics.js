@@ -1791,18 +1791,17 @@ function drawResetButton() {
 
   // Button background
   // Use the specified red color
-  fill(isHovering ? color(225, 106, 106) : color(205, 86, 86)); // Slightly lighter shade for hover
+  fill(isHovering ? color(205, 86, 86) : color(225, 106, 106)); // Swapped colors for darker hover
   noStroke(); // Remove the stroke
   rect(buttonX, buttonY, buttonWidth, buttonHeight, 5); // Set corner radius to 5
 
   // Button text
   fill(255); // White text
   textAlign(CENTER, CENTER);
-  textSize(20); // Increased from 14 to 18
-  //stroke(2); // Add black stroke for text
-  //strokeWeight(0.5); // Set stroke weight to 2
+  textSize(22); // Increased from 14 to 18
+  stroke(255); // Add black stroke for text
+  strokeWeight(1); // Set stroke weight to 2
   textFont('Open Sans');
-  textStyle(BOLD);
   text("Reset", buttonX + buttonWidth / 2, buttonY + buttonHeight / 2);
   textStyle(NORMAL);
   noStroke(); // Remove stroke after drawing text
