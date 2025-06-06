@@ -1795,7 +1795,7 @@ function drawResetButton() {
   rect(buttonX, buttonY, buttonWidth, buttonHeight, 5); // Set corner radius to 5
 
   // Button text
-  fill(230); // White text
+  fill(255); // White text
   textAlign(CENTER, CENTER);
   textSize(20); // Increased from 14 to 18
   //stroke(2); // Add black stroke for text
