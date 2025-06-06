@@ -1798,7 +1798,7 @@ function drawResetButton() {
   // Button text
   fill(255); // White text
   textAlign(CENTER, CENTER);
-  textSize(22); // Increased from 14 to 18
+  textSize(20); // Increased from 14 to 18
   stroke(255); // Add black stroke for text
   strokeWeight(1); // Set stroke weight to 2
   textFont('Open Sans');
