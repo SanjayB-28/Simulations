@@ -893,7 +893,8 @@ export function setupCanvas(containerElement) {
   const canvas = createCanvas(width, height);
   canvas.parent(containerElement);
   //pixelDensity(4);
-  displayDensity(); // Automatically adjust for the device's display density
+  let density = displayDensity(); 
+  pixelDensity(1.5); // Automatically adjust for the device's display density
   frameRate(60);
   return { width, height };
 }
