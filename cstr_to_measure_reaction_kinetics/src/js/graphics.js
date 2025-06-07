@@ -558,15 +558,15 @@ function drawOutletPipe(x, y, pipeWidth, valvePosition, label) {
   // Calculate flow rate based on valve position (0 to 1)
   const flowRate = map(valvePosition, 0, -Math.PI / 2, 0, 1);
 
-  // Draw valve diameter lines (before the switch)
-  strokeWeight(1);
-  line(x - valveSize / 2, valveY, x + valveSize / 2, valveY);
-  line(x, valveY - valveSize / 2, x, valveY + valveSize / 2);
+  // Remove valve diameter lines and center cross detail
+  // strokeWeight(1);
+  // line(x - valveSize / 2, valveY, x + valveSize / 2, valveY);
+  // line(x, valveY - valveSize / 2, x, valveY + valveSize / 2);
   
-  // Add center cross detail
-  const crossSize = valveSize * 0.15;
-  line(x - crossSize, valveY, x + crossSize, valveY);
-  line(x, valveY - crossSize, x, valveY + crossSize);
+  // // Add center cross detail
+  // const crossSize = valveSize * 0.15;
+  // line(x - crossSize, valveY, x + crossSize, valveY);
+  // line(x, valveY - crossSize, x, valveY + crossSize);
   
   // Valve handle (rotatable) - drawn last to appear on top
   stroke(40);
@@ -601,7 +601,7 @@ function drawOutletPipe(x, y, pipeWidth, valvePosition, label) {
   translate(handleLength, 0);
   // Use navy blue when pump is off, gray when pump is on
   const isPumpOn = label === "Tank A" ? pumpASwitchOn : pumpBSwitchOn;
-  fill(isPumpOn ? color(180, 180, 180) : color(102, 155, 188)); // Gray when pump is on, navy blue when off
+  fill(isPumpOn ? color(180, 180, 180) : color('#4CAF50')); // Use exact same color as slider ball
   circle(0, 0, handleWidth * 1.5);
   
   // Add center dot to handle
@@ -930,17 +930,19 @@ function handleInteractions() {
 
   const sliderAY = tankY - tankH / 2 - 120; // NaOH slider Y position
   const sliderBY = tankY - tankH / 2 - 40; // CH₃COOCH₃ slider Y position
+  const trackOffset = 15; // Track offset from slider Y position for concentration sliders
+  const tempTrackOffset = 30; // Track offset from slider Y position for temperature slider
 
-  const sliderHandleRadius = 20; // matches drawSlider handleR
+  const sliderHandleRadius = 8; // Reduced from 20 to match the actual handle size (16/2)
   const operationalError = "Cannot set concentrations while tank\nis operational";
 
   // Only block slider logic if rotor is on
   if (!rotorOn) {
     // Check slider interactions (A)
     if (!concentrationSet) {
-      if (Math.abs(mY - sliderAY) < 18) {
+      if (Math.abs(mY - (sliderAY - trackOffset)) < sliderHandleRadius) {
         // Use the new sliderStartX and sliderEndX for mapping mouseX to value
-        if (mX >= sliderStartX - sliderHandleRadius && mX <= sliderEndX + sliderHandleRadius) {
+        if (mX >= sliderStartX && mX <= sliderEndX) {
           sliderAValue = map(mX, sliderStartX, sliderEndX, 0.1, 0.5);
           sliderAValue = constrain(sliderAValue, 0.1, 0.5);
           return; // Only allow one slider at a time
@@ -949,9 +951,9 @@ function handleInteractions() {
     }
     // Check slider interactions (B)
     if (!concentrationSet) {
-      if (Math.abs(mY - sliderBY) < 18) {
+      if (Math.abs(mY - (sliderBY - trackOffset)) < sliderHandleRadius) {
         // Use the new sliderStartX and sliderEndX for mapping mouseX to value
-        if (mX >= sliderStartX - sliderHandleRadius && mX <= sliderEndX + sliderHandleRadius) {
+        if (mX >= sliderStartX && mX <= sliderEndX) {
           sliderBValue = map(mX, sliderStartX, sliderEndX, 0.1, 0.5);
           sliderBValue = constrain(sliderBValue, 0.1, 0.5);
           return;
@@ -963,7 +965,7 @@ function handleInteractions() {
       concentrationSet = true;
       return;
     }
-  } else if ((Math.abs(mY - sliderAY) < 18 && (mX >= sliderStartX - sliderHandleRadius && mX <= sliderEndX + sliderHandleRadius) || Math.abs(mY - sliderBY) < 18 && (mX >= sliderStartX - sliderHandleRadius && mX <= sliderEndX + sliderHandleRadius))) {
+  } else if ((Math.abs(mY - (sliderAY - trackOffset)) < sliderHandleRadius && (mX >= sliderStartX && mX <= sliderEndX) || Math.abs(mY - (sliderBY - trackOffset)) < sliderHandleRadius && (mX >= sliderStartX && mX <= sliderEndX))) {
     error(operationalError);
   }
 
@@ -992,14 +994,14 @@ function handleInteractions() {
       // If trying to rotate clockwise (angle > 0), ignore the movement
       if (angle > 0) return isDragging; // Return current drag state if trying to rotate wrong way
 
-      // Map angle from -π to 0 to 0 to -π/2 range (left to right, rotating up)
-      angle = map(angle, -Math.PI, 0, 0, -Math.PI / 2);
-
-      // Ensure the angle can reach both extremes with a small threshold
-      if (angle > -0.01) angle = 0; // Fully closed
-      if (angle < -Math.PI / 2 + 0.01) angle = -Math.PI / 2; // Fully open
+      // Smooth mapping from mouse angle to valve position
+      // Use a wider range for mouse movement but map smoothly to valve position
+      const valveAngle = map(angle, -Math.PI, 0, 0, -Math.PI / 2);
       
-      setPosition(angle);
+      // Apply smooth constraints without snapping
+      const constrainedAngle = constrain(valveAngle, -Math.PI / 2, 0);
+      
+      setPosition(constrainedAngle);
       return true; // Return true to indicate we're dragging
     }
     return false; // Return false to indicate we're not dragging
@@ -1025,16 +1027,16 @@ function handleInteractions() {
   const tempSliderEndX = tempSliderX + tempSliderW / 2;
 
   if (!rotorOn && !temperatureSet) {
-    if (Math.abs(mY - (tempSliderY - 30)) < 18) { // Fixed: Account for track offset
+    if (Math.abs(mY - (tempSliderY - tempTrackOffset)) < sliderHandleRadius) { // Use tempTrackOffset for temperature slider
       // Use the new tempSliderStartX and tempSliderEndX for mapping mouseX to value
-      if (mX >= tempSliderStartX - sliderHandleRadius && mX <= tempSliderEndX + sliderHandleRadius) {
+      if (mX >= tempSliderStartX && mX <= tempSliderEndX) {
         // Map mX to temperature value (25 to 85 °C)
         temperatureValue = map(mX, tempSliderStartX, tempSliderEndX, 25, 85);
         temperatureValue = constrain(temperatureValue, 25, 85);
         return;
       }
     }
-  } else if (Math.abs(mY - (tempSliderY - 30)) < 18 && mX >= tempSliderStartX - sliderHandleRadius && mX <= tempSliderEndX + sliderHandleRadius) {
+  } else if (Math.abs(mY - (tempSliderY - tempTrackOffset)) < sliderHandleRadius && mX >= tempSliderStartX && mX <= tempSliderEndX) {
     const operationalError = "Cannot set temperature while tank\nis operational";
     error(operationalError);
   }
