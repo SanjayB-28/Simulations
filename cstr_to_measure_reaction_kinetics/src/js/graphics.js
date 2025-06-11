@@ -70,6 +70,9 @@ const MAX_FLOW_RATE = 60; // Max flow (ml/s)
 const SIMPLE_TANK_MAX_LEVEL = 0.65; // Max CSTR level
 const SIMPLE_TANK_FILL_RATE = 0.0005; // CSTR fill rate
 
+// New constant to control simulation speed
+const TIME_LAPSE_FACTOR = 10; // e.g., 10 means 10 simulation seconds pass for every 1 real second
+
 // Add these global variables at the top with other state variables
 let isDraggingValveA = false;
 let isDraggingValveB = false;
@@ -727,9 +730,11 @@ function drawSlider(x, y, w, value, label, displayValue, min = 0.1, max = 0.5, d
   const valueX = x + w / 2 + 10; // Position value text to the right of the slider bar
   const valueY = trackY; // Align vertically with the slider bar
   let displayValueText;
-  if (displayValue !== undefined) {
-    displayValueText = Math.round(displayValue);
+  if (label.includes("(°C)")) {
+    // For temperature slider, display as a whole number
+    displayValueText = Math.round(value);
   } else {
+    // For concentration sliders, display with two decimal places
     displayValueText = value.toFixed(2);
   }
   // Add units based on the original label
@@ -933,7 +938,7 @@ function handleInteractions() {
   const trackOffset = 15; // Track offset from slider Y position for concentration sliders
   const tempTrackOffset = 30; // Track offset from slider Y position for temperature slider
 
-  const sliderHandleRadius = 8; // Reduced from 20 to match the actual handle size (16/2)
+  const sliderHandleRadius = 16; // Adjusted to match the visual handle size (handleR) in drawSlider
   const operationalError = "Cannot set concentrations while tank\nis operational";
 
   // Only block slider logic if rotor is on
@@ -944,7 +949,7 @@ function handleInteractions() {
         // Use the new sliderStartX and sliderEndX for mapping mouseX to value
         if (mX >= sliderStartX && mX <= sliderEndX) {
           sliderAValue = map(mX, sliderStartX, sliderEndX, 0.1, 0.5);
-          sliderAValue = constrain(sliderAValue, 0.1, 0.5);
+          sliderAValue = parseFloat(constrain(sliderAValue, 0.1, 0.5).toFixed(2));
           return; // Only allow one slider at a time
         }
       }
@@ -955,7 +960,7 @@ function handleInteractions() {
         // Use the new sliderStartX and sliderEndX for mapping mouseX to value
         if (mX >= sliderStartX && mX <= sliderEndX) {
           sliderBValue = map(mX, sliderStartX, sliderEndX, 0.1, 0.5);
-          sliderBValue = constrain(sliderBValue, 0.1, 0.5);
+          sliderBValue = parseFloat(constrain(sliderBValue, 0.1, 0.5).toFixed(2));
           return;
         }
       }
@@ -1032,7 +1037,7 @@ function handleInteractions() {
       if (mX >= tempSliderStartX && mX <= tempSliderEndX) {
         // Map mX to temperature value (25 to 85 °C)
         temperatureValue = map(mX, tempSliderStartX, tempSliderEndX, 25, 85);
-        temperatureValue = constrain(temperatureValue, 25, 85);
+        temperatureValue = parseFloat(constrain(temperatureValue, 25, 85).toFixed(2));
         return;
       }
     }
@@ -1300,18 +1305,18 @@ export function drawSimulation(width, height) {
     if (pumpASwitchOn && pumpBSwitchOn) {
       // Reset accumulated time when both pumps are on
       if (accumulatedTime === 0) {
-        accumulatedTime = timeSinceLastCalc;
+        accumulatedTime = timeSinceLastCalc * TIME_LAPSE_FACTOR;
       } else {
-        accumulatedTime += timeSinceLastCalc;
+        accumulatedTime += timeSinceLastCalc * TIME_LAPSE_FACTOR;
       }
       
       const cstrResult = run_CSTR({
         t: accumulatedTime,
-        T: temperatureValue + 273.15, // Convert °C to K
-        CAf: sliderAValue, // Use NaOH concentration
-        CBf: sliderBValue, // Use CH₃COOCH₃ concentration
-        vA: currentFlowRateA / 1000,
-        vB: currentFlowRateB / 1000
+        T: Math.round(temperatureValue) + 273.15, // Convert °C to K and round temperature
+        CAf: parseFloat(sliderAValue.toFixed(3)), // Round concentration A to 3 decimal places
+        CBf: parseFloat(sliderBValue.toFixed(3)), // Round concentration B to 3 decimal places
+        vA: parseFloat((currentFlowRateA / 1000).toFixed(4)), // Round flow rate A to 4 decimal places (L/s)
+        vB: parseFloat((currentFlowRateB / 1000).toFixed(4)) // Round flow rate B to 4 decimal places (L/s)
       });
 
       // Update the values
