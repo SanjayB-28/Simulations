@@ -21,7 +21,7 @@ function run_CSTR(args) {
   const CC0 = 0;
   const CD0 = 0;
 
-  const V = 10; // volume of tank (L)
+  const V = 2; // volume of tank (L)
 
   // Rate constant is dependent on temperature
   const k = (T) => {
