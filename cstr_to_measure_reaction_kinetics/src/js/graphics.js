@@ -1298,6 +1298,7 @@ export function drawSimulation(width, height) {
 
   // Calculate CSTR values
   const calcTime = millis();
+
   const timeSinceLastCalc = (calcTime - lastCalculationTime) / 1000;
 
   if (timeSinceLastCalc >= 0.1) { // Update every 100ms
@@ -1345,6 +1346,50 @@ export function drawSimulation(width, height) {
 
   // Draw operation instructions under the outlet pipe
   drawOperationInstructions(width, height);
+
+  // Add irregular boundary around CSTR tank and concentration monitors
+  push();
+  noFill();
+
+  // Approximate bounding box for CSTR tank and monitors
+  const rectX = width * 0.57; // Left edge
+  const rectY = height * 0.185; // Top edge
+  const rectWidth = width * 0.41; // Width
+  const rectHeight = height * 0.48; // Height
+
+  // Check for hover state
+  const isHoveringRect = mX >= rectX && mX <= rectX + rectWidth &&
+                         mY >= rectY && mY <= rectY + rectHeight;
+
+  // Set stroke color based on hover state
+  stroke(isHoveringRect ? color("#254D70") : 0); // Lighter grey on hover, black otherwise
+  strokeWeight(2.5); // Thicker line, manually set by user
+
+  // Set dash pattern: 10 pixels dash, 5 pixels gap
+  drawingContext.setLineDash([10, 5]);
+
+  rect(rectX, rectY, rectWidth, rectHeight, 10); // Added corner radius of 10
+
+  // Add text inside the box at the top right
+  stroke(0); // Black stroke
+  strokeWeight(0); // Current stroke weight for the text
+  textFont('Open Sans'); // Set font to Open Sans
+  textSize(22); // Current font size
+  textAlign(RIGHT, TOP); // Align text to the top-right
+  
+  // Set text fill color based on hover state
+  fill(isHoveringRect ? color("#254D70") : 0); // Lighter red on hover, black otherwise
+
+  // Draw text
+  text('Scaled 10x', rectX + rectWidth - 20, rectY + 20); // Position with padding
+
+  // No need to draw text twice if stroke weight is 0 and fill is applied directly
+  // The `noStroke()` and `fill(0)` block after the text call can be removed if strokeWeight is consistently 0
+  
+  // Reset line dash to solid
+  drawingContext.setLineDash([]);
+
+  pop();
 }
 
 // Export slider values for external use
