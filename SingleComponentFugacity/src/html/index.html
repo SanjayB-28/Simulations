@@ -38,7 +38,7 @@
         </div>
         <div class="modal-body">
           <p>
-
+            This simulation plots fugacity of a hypothetical single component as a function of temperature or pressure (select which plot using the dropdown menu). The saturation point is where liquid and vapor have equal fugacities. Above or below the saturation point, the phase with the lower fugacity is the stable phase. The fugacity-versus-pressure plot assume the vapor phase is ideal so that the fugacity versus pressure for the gas phase is linear. When the "real gas" box is checked, the vapor is assumed to be a real gas and the fugacity versus pressure for the vapor phase is not linear.
           </p>
         </div>
       </div>
@@ -55,12 +55,28 @@
           </button>
         </div>
         <div class="modal-body">
-          <p class="details-txt">
-            This is an \( x = \frac{5}{2} e^{\mu} \) inline equation. Below is a block equation.
+          <p>
+            Fugacity is used instead of Gibbs free energy to determine phase equilibrium because it is easier to use (the fugacity of a pure-component ideal gas is the same as the pressure). Fugacity is defined by:
           </p>
-
-          <p class="details-eqn">
-            $$ [1] \quad \dot{N} = \frac{dN}{dt} = -\frac{d}{dt} \int_{-\infty}^{\infty} \psi^* \psi dx $$
+          <p class="details-eqn">$$ dG = V dP \equiv RT\, d \ln f \tag{1} $$</p>
+          <p>
+            where <em>G</em> is the Gibbs energy, <em>V</em> is specific volume, <em>P</em> is pressure, <em>R</em> is the gas constant, <em>T</em> is temperature and <em>f</em> is fugacity. When two phases are in equilibrium for a single component, the fugacity of the component is the same in each phase. When only one phase exists, it is the phase with the lower fugacity.
+          </p>
+          <p>
+            Equation (1) can be integrated, using the fact that the fugacity of a single-component ideal gas is the pressure, to yield:
+          </p>
+          <p class="details-eqn">$$ \frac{G - G^{ig}}{RT} = \ln \left( \frac{f}{P} \right) = \ln \phi \tag{2} $$</p>
+          <p>
+            where <em>G<sup>ig</sup></em> is the Gibbs energy of an ideal gas and <em>\phi</em> is the fugacity coefficient. Equation (2) can be applied to solids, liquids or gases. Below the critical point, the Poynting correction is used to calculate the fugacity of a liquid or solid:
+          </p>
+          <p class="details-eqn">$$ f = \phi^{sat} P^{sat} \exp \left( \frac{V (P - P^{sat})}{RT} \right) \tag{3} $$</p>
+          <p>
+            where \( \phi^{sat} \) is the fugacity coefficient at saturation conditions, <em>P<sup>sat</sup></em> is the saturation pressure and <em>V</em> is the liquid or solid volume, which is assumed independent of pressure. For low pressure, we assume that
+          </p>
+          <p class="details-eqn">$$ f^L \approx P^{sat} \tag{4} $$</p>
+          <p class="details-eqn">$$ f^S \approx P^{sat} \tag{5} $$</p>
+          <p>
+            where the superscripts <em>L</em>, <em>S</em> and <em>sat</em> represent liquid, solid and saturation properties.
           </p>
         </div>
       </div>
@@ -78,7 +94,7 @@
         </div>
         <div class="modal-body">
           <p>
-
+            This digital experiment was created in the <a href="https://www.colorado.edu/chbe/" target="_blank">Department of Chemical and Biological Engineering</a> at University of Colorado Boulder for <a href="https://www.LearnChemE.com" target="_blank">LearnChemE.com</a> by Sanjay Baskaran under the direction of Professor John L. Falconer and Michelle Medlin. It is a JavaScript/HTML5 implementation of a Mathematica simulation by Neil Hendren. It was prepared with financial support from the National Science Foundation (DUE 2336987 and 2336988) in collaboration with Washington State University. Address any questions or comments to LearnChemE@gmail.com.
           </p>
         </div>
       </div>

@@ -12,8 +12,13 @@ window.state = {
   showButtons: false,
   hamburgerHasBeenClicked: window.localStorage.getItem("hamburgerHasBeenClicked") === "true",
   canvasSize: [150, 120],
-  controlBarHeight: 14, // 10px bar height + 2px top margin + 2px bottom margin
+  controlBarHeight: 17, // 8px control bar + 1px gap + 6px graph bar + 2px margins
   showMenu: false, // For canvas popup menu
+  sliderValue: 0.5, // Temperature slider value
+  isDraggingSlider: false, // Track if slider is being dragged
+  dropdownSelection: 0, // Selected dropdown option (0 or 1)
+  showDropdown: false, // Whether dropdown options are visible
+  realGasChecked: window.localStorage.getItem("realGasChecked") === "true",
 };
 
 const containerElement = document.getElementById("p5-container");
@@ -33,7 +38,7 @@ window.draw = function() {
   scale(relativeSize());
   background(255);
   
-  // Set the main content area (below the control bar with margins)
+  // Set the main content area (below both bars with margins)
   const margin = 2; // Match the control bar margin
   window.contentArea = {
     x: margin,
@@ -50,6 +55,29 @@ window.draw = function() {
 };
 
 window.mousePressed = function() {
+  // Check dropdown option clicks FIRST if open
+  if (window.state.showDropdown && window.dropdownOptionBounds) {
+    for (let option of window.dropdownOptionBounds) {
+      if (window.mX >= option.x && 
+          window.mX <= option.x + option.width &&
+          window.mY >= option.y && 
+          window.mY <= option.y + option.height) {
+        window.state.dropdownSelection = option.index;
+        window.state.showDropdown = false;
+        return;
+      }
+    }
+  }
+  // Then check dropdown box interaction
+  if (window.dropdownBounds && 
+      window.mX >= window.dropdownBounds.x && 
+      window.mX <= window.dropdownBounds.x + window.dropdownBounds.width &&
+      window.mY >= window.dropdownBounds.y && 
+      window.mY <= window.dropdownBounds.y + window.dropdownBounds.height) {
+    window.state.showDropdown = !window.state.showDropdown;
+    return;
+  }
+  
   // Check if menu is open and handle menu button clicks
   if (window.state.showMenu && window.menuButtonBounds) {
     for (const btn of window.menuButtonBounds) {
@@ -82,6 +110,22 @@ window.mousePressed = function() {
       return;
     }
   }
+  
+  // Check slider interaction
+  if (window.sliderBounds) {
+    const { x, y, width, height } = window.sliderBounds;
+    if (
+      window.mX >= x && window.mX <= x + width &&
+      window.mY >= y && window.mY <= y + height
+    ) {
+      window.state.isDraggingSlider = true;
+      // Update slider value based on mouse position
+      const newValue = Math.max(0, Math.min(1, (window.mX - x) / width));
+      window.state.sliderValue = newValue;
+      return;
+    }
+  }
+  
   // Check if click is inside the hamburger icon
   if (window.hamburgerIconBounds) {
     const { x, y, w, h } = window.hamburgerIconBounds;
@@ -94,9 +138,30 @@ window.mousePressed = function() {
     }
   }
   // Add other mouse interactions here if needed
+  // Check checkbox interaction
+  if (window.checkboxBounds &&
+      window.mX >= window.checkboxBounds.x &&
+      window.mX <= window.checkboxBounds.x + window.checkboxBounds.w &&
+      window.mY >= window.checkboxBounds.y &&
+      window.mY <= window.checkboxBounds.y + window.checkboxBounds.h) {
+    window.state.realGasChecked = !window.state.realGasChecked;
+    return;
+  }
 };
 
-// Remove mousePressed handler related to hamburger
+// Add mouse dragging for slider
+window.mouseDragged = function() {
+  if (window.state.isDraggingSlider && window.sliderBounds) {
+    const { x, width } = window.sliderBounds;
+    const newValue = Math.max(0, Math.min(1, (window.mX - x) / width));
+    window.state.sliderValue = newValue;
+  }
+};
+
+// Add mouse release to stop dragging
+window.mouseReleased = function() {
+  window.state.isDraggingSlider = false;
+};
 
 window.windowResized = () => {
   resizeCanvas(containerElement.offsetWidth, containerElement.offsetHeight);
@@ -112,3 +177,22 @@ function sizeContainer() {
 }
 
 require("./js/events.js");
+
+// If not already present, add the directions modal HTML to the document
+if (!document.getElementById('directions-modal')) {
+  const modalHtml = `
+  <div class="modal fade" id="directions-modal" tabindex="-1" aria-labelledby="directions-modal-label" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="directions-modal-label">Directions</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body" style="font-size: 13px;">
+          This simulation plots fugacity of a hypothetical single component as a function of temperature or pressure (select which plot using the dropdown menu). The saturation point is where liquid and vapor have equal fugacities. Above or below the saturation point, the phase with the lower fugacity is the stable phase. The fugacity-versus-pressure plot assume the vapor phase is ideal so that the fugacity versus pressure for the gas phase is linear. When the "real gas" box is checked, the vapor is assumed to be a real gas and the fugacity versus pressure for the vapor phase is not linear.
+        </div>
+      </div>
+    </div>
+  </div>`;
+  document.body.insertAdjacentHTML('beforeend', modalHtml);
+}
