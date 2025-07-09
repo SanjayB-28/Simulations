@@ -36,9 +36,16 @@ function drawControlBar() {
     sliderDisplay = value.toFixed(3);
     sliderValueDisplay = value;
   } else {
-    sliderLabel = "temperature (K)";
-    sliderMin = 458;
-    sliderMax = 483;
+    // Fugacity versus pressure mode
+    if (window.state.realGasChecked) {
+      sliderLabel = "temperature (K)";
+      sliderMin = 458;
+      sliderMax = 483;
+    } else {
+      sliderLabel = "temperature (K)";
+      sliderMin = 358;
+      sliderMax = 395;
+    }
     const value = sliderMin + (sliderMax - sliderMin) * window.state.sliderValue;
     sliderDisplay = Math.round(value);
     sliderValueDisplay = value;
@@ -238,7 +245,8 @@ function drawGraphBar() {
 
   // Draw vertical label to the left of the axes, dynamic units
   const isPressure = window.state.dropdownSelection === 1;
-  const fugacityLabel = isPressure ? "fugacity (MPa)" : "fugacity (bar)";
+  const isRealGas = window.state.realGasChecked;
+  const fugacityLabel = isPressure ? (isRealGas ? "fugacity (MPa)" : "fugacity (bar)") : "fugacity (bar)";
   push();
   textSize(5);
   fill(30);
@@ -250,7 +258,7 @@ function drawGraphBar() {
   pop();
 
   // Draw horizontal label below the axes, dynamic units
-  const axisLabel = isPressure ? "pressure (MPa)" : "temperature (°C)";
+  const axisLabel = isPressure ? (isRealGas ? "pressure (MPa)" : "pressure (bar)") : "temperature (°C)";
   textSize(5);
   fill(30);
   noStroke();
@@ -320,52 +328,126 @@ function drawGraphBar() {
 
   // Draw fugacity vs pressure graph if in that mode and data is available
   if (isPressure && window.state.fugacityPressureGraph) {
-    const { Pvals, fugacityVapor, fugacityLiquid, Psat } = window.state.fugacityPressureGraph;
+    const { Pvals, fugacityVapor, fugacityLiquid, Psat, realGas } = window.state.fugacityPressureGraph;
+    // Debug output for plotting
+    console.log('[DEBUG] Plotting:', { realGas, Psat, Pvals, fugacityVapor });
     // Helper to map P, f to axes coordinates
     function toXY(P, f) {
       const x = axesX + (P / 3.0) * axesWidth;
       const y = axesY + axesHeight - (f / 3.0) * axesHeight;
       return [x, y];
     }
-    // Draw vapor curve (blue)
-    stroke('#1976D2');
+    // Find index of Psat
+    let iPsat = Psat !== null ? Pvals.findIndex(p => p >= Psat) : -1;
+    if (iPsat === -1) iPsat = Pvals.length - 1;
+    // Clip to axes box
+    drawingContext.save();
+    drawingContext.beginPath();
+    drawingContext.rect(axesX, axesY, axesWidth, axesHeight);
+    drawingContext.clip();
+
+    // Draw vapor line (solid, #093FB4 up to Psat)
+    stroke('#093FB4');
     strokeWeight(1.2);
     noFill();
     beginShape();
-    for (let i = 0; i < Pvals.length; i++) {
+    for (let i = 0; i <= iPsat; i++) {
       const [x, y] = toXY(Pvals[i], fugacityVapor[i]);
       vertex(x, y);
     }
     endShape();
-    // Draw liquid curve (blue, solid)
-    stroke('#1976D2');
+    // Draw vapor extension (dashed, faint blue) from Psat to (3,3)
+    if (Psat !== null && Psat < 3.0) {
+      stroke('#1976D2');
+      strokeWeight(0.8);
+      drawingContext.setLineDash([3, 3]);
+      const [xStart, yStart] = toXY(Psat, Psat);
+      const [xEnd, yEnd] = toXY(3.0, 3.0);
+      line(xStart, yStart, xEnd, yEnd);
+      drawingContext.setLineDash([]);
+    }
+    // Draw liquid extension (dashed, faint blue) before Psat
+    if (iPsat > 0) {
+      stroke('#1976D2');
+      strokeWeight(0.8);
+      drawingContext.setLineDash([3, 3]);
+      beginShape();
+      for (let i = 0; i <= iPsat; i++) {
+        const [x, y] = toXY(Pvals[i], fugacityLiquid[i]);
+        vertex(x, y);
+      }
+      endShape();
+      drawingContext.setLineDash([]);
+    }
+    // Draw liquid line (solid, #093FB4 from Psat to end)
+    stroke('#093FB4');
     strokeWeight(1.2);
     noFill();
     beginShape();
-    for (let i = 0; i < Pvals.length; i++) {
+    for (let i = iPsat; i < Pvals.length; i++) {
       const [x, y] = toXY(Pvals[i], fugacityLiquid[i]);
       vertex(x, y);
     }
     endShape();
-    // Draw Psat marker and dashed lines if Psat is found
+    // Draw dashed horizontal line at y=Psat (from y-axis to Psat)
     if (Psat !== null) {
-      const [xPsat, yPsat] = toXY(Psat, fugacityVapor[Pvals.findIndex(p => p >= Psat)]);
-      // Dashed vertical line
+      const [x0, yPsat] = toXY(0, Psat);
+      const [xPsat, yPsat2] = toXY(Psat, Psat);
+      stroke('#1976D2');
+      strokeWeight(0.8);
+      drawingContext.setLineDash([3, 3]);
+      line(x0, yPsat, xPsat, yPsat2);
+      drawingContext.setLineDash([]);
+    }
+    // Draw vertical dashed line at Psat
+    if (Psat !== null) {
+      const [xPsat, yPsat] = toXY(Psat, Psat);
       stroke(0);
       strokeWeight(0.7);
-      drawingContext.setLineDash([3, 3]);
+      drawingContext.setLineDash([2, 2]);
       line(xPsat, yPsat, xPsat, axesY + axesHeight);
       drawingContext.setLineDash([]);
-      // Marker
+      // Draw black dot at (Psat, Psat)
       fill(0);
       noStroke();
       ellipse(xPsat, yPsat, 3.2, 3.2);
-      // Psat label
-      noStroke();
+      // Draw P^sat label
       fill(30);
+      noStroke();
       textSize(3.2);
       textAlign(CENTER, BOTTOM);
       text('P^sat', xPsat - 7, yPsat - 2);
+    }
+    drawingContext.restore();
+
+    // Draw region labels (not clipped)
+    if (Psat !== null) {
+      const fracVapor = 0.45; // a bit further along the line
+      const Px = Psat * fracVapor;
+      const Fy = Psat * fracVapor;
+      const [xV, yV] = toXY(Px, Fy);
+      push();
+      textSize(4.2);
+      fill(30);
+      noStroke();
+      textAlign(CENTER, CENTER);
+      translate(xV, yV);
+      rotate(-Math.PI / 4.8);
+      translate(0, -4); // Move up from the line
+      text('vapor', 0, 0);
+      pop();
+      // 'liquid' label, horizontal, above liquid line near right
+      const fracLiquid = 0.7;
+      const PxL = Psat + (3 - Psat) * fracLiquid;
+      const FyL = Psat;
+      const [xL, yL] = toXY(PxL, FyL);
+      push();
+      textSize(4.2);
+      fill(30);
+      noStroke();
+      textAlign(LEFT, BOTTOM);
+      text('liquid', xL - 5 , yL - 1); // left and down
+      pop();
     }
   }
 }
