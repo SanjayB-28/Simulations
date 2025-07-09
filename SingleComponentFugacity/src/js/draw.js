@@ -20,13 +20,8 @@ function drawControlBar() {
   fill(240, 240, 240);
   stroke(0);
   strokeWeight(0.4);
-  rect(margin, margin, state.canvasSize[0] - 2 * margin, barHeight);
+  rect(margin, margin, state.canvasSize[0] - 2 * margin, barHeight, 1);
   
-  // Draw a subtle border at the bottom of the bar
-  stroke(0);
-  strokeWeight(0.4);
-  line(margin, margin + barHeight, state.canvasSize[0] - margin, margin + barHeight);
-
   // Dropdown options
   const dropdownOptions = ["fugacity versus temperature", "fugacity versus pressure"];
   const selectedOption = window.state.dropdownSelection;
@@ -58,7 +53,7 @@ function drawControlBar() {
 
   // Draw checkbox only for 'fugacity versus pressure'
   if (selectedOption === 1) {
-    const checkboxX = margin + 20 + 25 + 10 + 12 + 34 + 2;
+    const checkboxX = margin + 20 + 25 + 10 + 12 + 34 + 6; // moved 10 units further right
     const checkboxY = margin + barHeight / 2;
     drawCheckbox(checkboxX, checkboxY, 2.6, window.state.realGasChecked, "real gas");
   }
@@ -211,6 +206,7 @@ function drawDropdownOptionsOverlay() {
 }
 
 function drawGraphBar() {
+  console.log("fugacityPressureGraph", window.state.fugacityPressureGraph);
   // Draw a graph bar below the control bar
   const controlBarHeight = 8;
   const graphBarHeight = 107;
@@ -218,30 +214,168 @@ function drawGraphBar() {
   const graphBarY = margin + controlBarHeight + 1; // Position below control bar with 1px gap
   
   // Draw the background bar with margins
-  fill(220, 220, 220); // Slightly darker than control bar
+  fill(230, 230, 230); // Slightly darker than control bar
   stroke(0);
   strokeWeight(0.4);
-  rect(margin, graphBarY, state.canvasSize[0] - 2 * margin, graphBarHeight);
+  rect(margin, graphBarY, state.canvasSize[0] - 2 * margin, graphBarHeight, 1);
   
-  // Draw a subtle border at the bottom of the bar
-  stroke(0);
-  strokeWeight(0.4);
-  line(margin, graphBarY + graphBarHeight, state.canvasSize[0] - margin, graphBarY + graphBarHeight);
-  
-  // Add some text to indicate it's a graph area
-  fill(50, 50, 50);
+  // Remove the 'Graph' text
+  // Center the axes box in the graph section
+  // Move axes box a little towards the upper right
+  const axesWidth = 120;
+  const axesHeight = 90;
+  const axesX = margin + (state.canvasSize[0] - 2 * margin - axesWidth) * 0.75;
+  const axesY = graphBarY + (graphBarHeight - axesHeight) * 0.35;
+  // Fill axes box with white
+  fill(255);
   noStroke();
-  textSize(8);
-  textAlign(LEFT, CENTER);
-  text("Graph", margin + 5, graphBarY + graphBarHeight / 2);
+  rect(axesX, axesY, axesWidth, axesHeight);
+  // Draw axes border
+  noFill();
+  stroke(0);
+  strokeWeight(0.3);
+  rect(axesX, axesY, axesWidth, axesHeight);
+
+  // Draw vertical label to the left of the axes, dynamic units
+  const isPressure = window.state.dropdownSelection === 1;
+  const fugacityLabel = isPressure ? "fugacity (MPa)" : "fugacity (bar)";
+  push();
+  textSize(5);
+  fill(30);
+  noStroke();
+  textAlign(CENTER, CENTER);
+  translate(axesX - 10, axesY + axesHeight / 2);
+  rotate(-HALF_PI);
+  text(fugacityLabel, 0, 0);
+  pop();
+
+  // Draw horizontal label below the axes, dynamic units
+  const axisLabel = isPressure ? "pressure (MPa)" : "temperature (°C)";
+  textSize(5);
+  fill(30);
+  noStroke();
+  textAlign(CENTER, CENTER);
+  text(axisLabel, axesX + axesWidth / 2, axesY + axesHeight+6);
+
+  // Draw axes ticks and labels for 'fugacity versus pressure'
+  if (isPressure) {
+    const nTicks = 7; // 0.0, 0.5, ..., 3.0
+    const nMinor = 4; // 4 minor ticks between major
+    const minVal = 0.0;
+    const maxVal = 3.0;
+    textSize(2.2);
+    fill(30);
+    stroke(0);
+    strokeWeight(0.1);
+    // Major ticks and labels
+    textAlign(RIGHT, CENTER);
+    for (let i = 0; i < nTicks; i++) {
+      const frac = i / (nTicks - 1);
+      const y = axesY + axesHeight - frac * axesHeight;
+      const val = (minVal + frac * (maxVal - minVal)).toFixed(1);
+      // Left major tick
+      line(axesX, y, axesX + 3, y);
+      // Right major tick
+      line(axesX + axesWidth - 3, y, axesX + axesWidth, y);
+      // Left label (only left)
+      text(val, axesX - 1, y);
+      // Minor ticks (skip after last major)
+      if (i < nTicks - 1) {
+        for (let j = 1; j <= nMinor; j++) {
+          const minorFrac = (i + j / (nMinor + 1)) / (nTicks - 1);
+          const yMinor = axesY + axesHeight - minorFrac * axesHeight;
+          // Left minor
+          line(axesX, yMinor, axesX + 1.5, yMinor);
+          // Right minor
+          line(axesX + axesWidth - 1.5, yMinor, axesX + axesWidth, yMinor);
+        }
+      }
+    }
+    // Bottom and top axes
+    textAlign(CENTER, TOP);
+    for (let i = 0; i < nTicks; i++) {
+      const frac = i / (nTicks - 1);
+      const x = axesX + frac * axesWidth;
+      const val = (minVal + frac * (maxVal - minVal)).toFixed(1);
+      // Bottom major tick
+      line(x, axesY + axesHeight, x, axesY + axesHeight - 3);
+      // Top major tick
+      line(x, axesY + 3, x, axesY);
+      // Bottom label (only bottom)
+      text(val, x, axesY + axesHeight + 1);
+      // Minor ticks (skip after last major)
+      if (i < nTicks - 1) {
+        for (let j = 1; j <= nMinor; j++) {
+          const minorFrac = (i + j / (nMinor + 1)) / (nTicks - 1);
+          const xMinor = axesX + minorFrac * axesWidth;
+          // Bottom minor
+          line(xMinor, axesY + axesHeight, xMinor, axesY + axesHeight - 1.5);
+          // Top minor
+          line(xMinor, axesY + 1.5, xMinor, axesY);
+        }
+      }
+    }
+    noStroke();
+  }
+
+  // Draw fugacity vs pressure graph if in that mode and data is available
+  if (isPressure && window.state.fugacityPressureGraph) {
+    const { Pvals, fugacityVapor, fugacityLiquid, Psat } = window.state.fugacityPressureGraph;
+    // Helper to map P, f to axes coordinates
+    function toXY(P, f) {
+      const x = axesX + (P / 3.0) * axesWidth;
+      const y = axesY + axesHeight - (f / 3.0) * axesHeight;
+      return [x, y];
+    }
+    // Draw vapor curve (blue)
+    stroke('#1976D2');
+    strokeWeight(1.2);
+    noFill();
+    beginShape();
+    for (let i = 0; i < Pvals.length; i++) {
+      const [x, y] = toXY(Pvals[i], fugacityVapor[i]);
+      vertex(x, y);
+    }
+    endShape();
+    // Draw liquid curve (blue, solid)
+    stroke('#1976D2');
+    strokeWeight(1.2);
+    noFill();
+    beginShape();
+    for (let i = 0; i < Pvals.length; i++) {
+      const [x, y] = toXY(Pvals[i], fugacityLiquid[i]);
+      vertex(x, y);
+    }
+    endShape();
+    // Draw Psat marker and dashed lines if Psat is found
+    if (Psat !== null) {
+      const [xPsat, yPsat] = toXY(Psat, fugacityVapor[Pvals.findIndex(p => p >= Psat)]);
+      // Dashed vertical line
+      stroke(0);
+      strokeWeight(0.7);
+      drawingContext.setLineDash([3, 3]);
+      line(xPsat, yPsat, xPsat, axesY + axesHeight);
+      drawingContext.setLineDash([]);
+      // Marker
+      fill(0);
+      noStroke();
+      ellipse(xPsat, yPsat, 3.2, 3.2);
+      // Psat label
+      noStroke();
+      fill(30);
+      textSize(3.2);
+      textAlign(CENTER, BOTTOM);
+      text('P^sat', xPsat - 7, yPsat - 2);
+    }
+  }
 }
 
 function drawCanvasMenu() {
   // Popup menu dimensions (even smaller)
-  const menuWidth = 22;
-  const buttonHeight = 5.4;
-  const buttonSpacing = 1.5;
-  const popupPadding = 1.5;
+  const menuWidth = 20;
+  const buttonHeight = 4.8;
+  const buttonSpacing = 1.0;
+  const popupPadding = 1.2;
   const iconMargin = 4;
   const margin = 2;
   const iconSize = 6;
@@ -273,7 +407,7 @@ function drawCanvasMenu() {
     rect(btnX, btnY, btnW, btnH, 0.6);
     // Button label
     fill(255);
-    textSize(3.0);
+    textSize(2.8);
     textAlign(CENTER, CENTER);
     text(labels[i], btnX + btnW / 2, btnY + btnH / 2 + 0.05);
     // Store bounds for click detection

@@ -8,7 +8,7 @@ import { calcAll } from "./js/calcs.js";
 // GLOBAL VARIABLES OBJECT
 window.state = {
   frameRate: 60,
-  pixelDensity: 4,
+  pixelDensity: 2,
   showButtons: false,
   hamburgerHasBeenClicked: window.localStorage.getItem("hamburgerHasBeenClicked") === "true",
   canvasSize: [150, 120],
@@ -50,7 +50,8 @@ window.draw = function() {
   // Provide scaled mouse coordinates for future use
   window.mX = mouseX / relativeSize();
   window.mY = mouseY / relativeSize();
-  
+
+  calcAll(); // Ensure calculations are always up to date
   drawAll();
 };
 
