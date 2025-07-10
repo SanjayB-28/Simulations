@@ -1,3 +1,5 @@
+import { clausius } from './calcs.js';
+
 export function drawAll() {
   drawControlBar();
   drawGraphBar();
@@ -17,7 +19,7 @@ function drawControlBar() {
   const margin = 2; // Space between bar and canvas border
   
   // Draw the background bar with margins
-  fill(240, 240, 240);
+  fill(250, 250, 250);
   stroke(0);
   strokeWeight(0.4);
   rect(margin, margin, state.canvasSize[0] - 2 * margin, barHeight, 1);
@@ -30,21 +32,21 @@ function drawControlBar() {
   let sliderLabel, sliderDisplay, sliderMin, sliderMax, sliderValueDisplay;
   if (selectedOption === 0) {
     sliderLabel = "pressure (bar)";
-    sliderMin = 0.02;
-    sliderMax = 0.15;
+    sliderMin = 0.2;
+    sliderMax = 1.5;
     const value = sliderMin + (sliderMax - sliderMin) * window.state.sliderValue;
-    sliderDisplay = value.toFixed(3);
+    sliderDisplay = value.toFixed(2);
     sliderValueDisplay = value;
   } else {
     // Fugacity versus pressure mode
     if (window.state.realGasChecked) {
       sliderLabel = "temperature (K)";
-      sliderMin = 458;
-      sliderMax = 483;
+      sliderMin = 450;
+      sliderMax = 500;
     } else {
       sliderLabel = "temperature (K)";
-      sliderMin = 358;
-      sliderMax = 395;
+      sliderMin = 350;
+      sliderMax = 400;
     }
     const value = sliderMin + (sliderMax - sliderMin) * window.state.sliderValue;
     sliderDisplay = Math.round(value);
@@ -221,7 +223,7 @@ function drawGraphBar() {
   const graphBarY = margin + controlBarHeight + 1; // Position below control bar with 1px gap
   
   // Draw the background bar with margins
-  fill(230, 230, 230); // Slightly darker than control bar
+  fill(250, 250, 250); // Slightly darker than control bar
   stroke(0);
   strokeWeight(0.4);
   rect(margin, graphBarY, state.canvasSize[0] - 2 * margin, graphBarHeight, 1);
@@ -248,9 +250,9 @@ function drawGraphBar() {
   const isRealGas = window.state.realGasChecked;
   const fugacityLabel = isPressure ? (isRealGas ? "fugacity (MPa)" : "fugacity (bar)") : "fugacity (bar)";
   push();
-  textSize(5);
+  textSize(4.0); // reduced label size
   fill(30);
-  noStroke();
+  noStroke(); // ensure not bold
   textAlign(CENTER, CENTER);
   translate(axesX - 10, axesY + axesHeight / 2);
   rotate(-HALF_PI);
@@ -258,10 +260,10 @@ function drawGraphBar() {
   pop();
 
   // Draw horizontal label below the axes, dynamic units
-  const axisLabel = isPressure ? (isRealGas ? "pressure (MPa)" : "pressure (bar)") : "temperature (°C)";
-  textSize(5);
+  const axisLabel = isPressure ? (isRealGas ? "pressure (MPa)" : "pressure (bar)") : "temperature (K)";
+  textSize (4.0); // reduced label size
   fill(30);
-  noStroke();
+  noStroke(); // ensure not bold
   textAlign(CENTER, CENTER);
   text(axisLabel, axesX + axesWidth / 2, axesY + axesHeight+6);
 
@@ -271,27 +273,30 @@ function drawGraphBar() {
     const nMinor = 4; // 4 minor ticks between major
     const minVal = 0.0;
     const maxVal = 3.0;
-    textSize(2.2);
+    textSize(3.4); // increased tick number size
     fill(30);
-    stroke(0);
-    strokeWeight(0.1);
-    // Major ticks and labels
+    // Draw major ticks and labels
     textAlign(RIGHT, CENTER);
     for (let i = 0; i < nTicks; i++) {
       const frac = i / (nTicks - 1);
       const y = axesY + axesHeight - frac * axesHeight;
       const val = (minVal + frac * (maxVal - minVal)).toFixed(1);
       // Left major tick
+      stroke(0);
+      strokeWeight(0.1);
       line(axesX, y, axesX + 3, y);
       // Right major tick
       line(axesX + axesWidth - 3, y, axesX + axesWidth, y);
       // Left label (only left)
+      noStroke();
       text(val, axesX - 1, y);
       // Minor ticks (skip after last major)
       if (i < nTicks - 1) {
         for (let j = 1; j <= nMinor; j++) {
           const minorFrac = (i + j / (nMinor + 1)) / (nTicks - 1);
           const yMinor = axesY + axesHeight - minorFrac * axesHeight;
+          stroke(0);
+          strokeWeight(0.1);
           // Left minor
           line(axesX, yMinor, axesX + 1.5, yMinor);
           // Right minor
@@ -306,16 +311,21 @@ function drawGraphBar() {
       const x = axesX + frac * axesWidth;
       const val = (minVal + frac * (maxVal - minVal)).toFixed(1);
       // Bottom major tick
+      stroke(0);
+      strokeWeight(0.1);
       line(x, axesY + axesHeight, x, axesY + axesHeight - 3);
       // Top major tick
       line(x, axesY + 3, x, axesY);
       // Bottom label (only bottom)
+      noStroke();
       text(val, x, axesY + axesHeight + 1);
       // Minor ticks (skip after last major)
       if (i < nTicks - 1) {
         for (let j = 1; j <= nMinor; j++) {
           const minorFrac = (i + j / (nMinor + 1)) / (nTicks - 1);
           const xMinor = axesX + minorFrac * axesWidth;
+          stroke(0);
+          strokeWeight(0.1);
           // Bottom minor
           line(xMinor, axesY + axesHeight, xMinor, axesY + axesHeight - 1.5);
           // Top minor
@@ -324,6 +334,200 @@ function drawGraphBar() {
       }
     }
     noStroke();
+  }
+
+  // Draw axes ticks and labels for 'fugacity versus temperature'
+  if (!isPressure) {
+    const nTicks = 7; // 280, 300, ..., 400 K
+    const nMinor = 3; // 3 minor ticks between major
+    const minValY = 0.0;
+    const maxValY = 3.0;
+    const minValX = 280;
+    const maxValX = 400;
+    textSize(3.4); // increased tick number size
+    fill(30);
+    // Y axis (fugacity) major ticks and labels
+    textAlign(RIGHT, CENTER);
+    for (let i = 0; i < nTicks; i++) {
+      const frac = i / (nTicks - 1);
+      const y = axesY + axesHeight - frac * axesHeight;
+      const val = (minValY + frac * (maxValY - minValY)).toFixed(1);
+      // Left major tick
+      stroke(0);
+      strokeWeight(0.1);
+      line(axesX, y, axesX + 3, y);
+      // Right major tick
+      line(axesX + axesWidth - 3, y, axesX + axesWidth, y);
+      // Left label (only left)
+      noStroke();
+      text(val, axesX - 1, y);
+      // Minor ticks (skip after last major)
+      if (i < nTicks - 1) {
+        for (let j = 1; j <= nMinor; j++) {
+          const minorFrac = (i + j / (nMinor + 1)) / (nTicks - 1);
+          const yMinor = axesY + axesHeight - minorFrac * axesHeight;
+          stroke(0);
+          strokeWeight(0.1);
+          // Left minor
+          line(axesX, yMinor, axesX + 1.5, yMinor);
+          // Right minor
+          line(axesX + axesWidth - 1.5, yMinor, axesX + axesWidth, yMinor);
+        }
+      }
+    }
+    // X axis (temperature) major ticks and labels
+    textAlign(CENTER, TOP);
+    for (let i = 0; i < nTicks; i++) {
+      const frac = i / (nTicks - 1);
+      const x = axesX + frac * axesWidth;
+      const val = Math.round(minValX + frac * (maxValX - minValX));
+      // Bottom major tick
+      stroke(0);
+      strokeWeight(0.1);
+      line(x, axesY + axesHeight, x, axesY + axesHeight - 3);
+      // Top major tick
+      line(x, axesY + 3, x, axesY);
+      // Bottom label (only bottom)
+      noStroke();
+      text(val, x, axesY + axesHeight + 1);
+      // Minor ticks (skip after last major)
+      if (i < nTicks - 1) {
+        for (let j = 1; j <= nMinor; j++) {
+          const minorFrac = (i + j / (nMinor + 1)) / (nTicks - 1);
+          const xMinor = axesX + minorFrac * axesWidth;
+          stroke(0);
+          strokeWeight(0.1);
+          // Bottom minor
+          line(xMinor, axesY + axesHeight, xMinor, axesY + axesHeight - 1.5);
+          // Top minor
+          line(xMinor, axesY + 1.5, xMinor, axesY);
+        }
+      }
+    }
+    noStroke();
+  }
+
+  // Draw fugacity vs temperature graph if in that mode and data is available
+  if (!isPressure && window.state.fugacityTemperatureGraph) {
+    const { Tvals, fugacityVals, Tsat, pres } = window.state.fugacityTemperatureGraph;
+    // Helper to map T, f to axes coordinates
+    function toXY(T, f) {
+      const x = axesX + ((T - 280) / 120) * axesWidth;
+      const y = axesY + axesHeight - (f / 3.0) * axesHeight;
+      return [x, y];
+    }
+    // Find index of Tsat
+    let iTsat = Tsat !== null ? Tvals.findIndex(t => t >= Tsat) : -1;
+    if (iTsat === -1) iTsat = Tvals.length - 1;
+    // Clip to axes box
+    drawingContext.save();
+    drawingContext.beginPath();
+    drawingContext.rect(axesX, axesY, axesWidth, axesHeight);
+    drawingContext.clip();
+
+    // Draw solid blue curve (liquid region)
+    stroke('#093FB4');
+    strokeWeight(0.5); // thinner solid line
+    noFill();
+    beginShape();
+    for (let i = 0; i <= iTsat; i++) {
+      const [x, y] = toXY(Tvals[i], fugacityVals[i]);
+      vertex(x, y);
+    }
+    endShape();
+
+    // Draw solid blue horizontal line (vapor region)
+    stroke('#093FB4');
+    strokeWeight(0.5);
+    noFill();
+    beginShape();
+    for (let i = iTsat; i < Tvals.length; i++) {
+      const [x, y] = toXY(Tvals[i], fugacityVals[i]);
+      vertex(x, y);
+    }
+    endShape();
+
+    // Draw dashed blue horizontal line (vapor extension to left)
+    if (Tsat !== null) {
+      stroke('#1976D2');
+      strokeWeight(0.4);
+      drawingContext.setLineDash([1.2, 1.2]);
+      const [x0, yVap] = toXY(280, fugacityVals[iTsat]);
+      const [xTsat, yVap2] = toXY(Tsat, fugacityVals[iTsat]);
+      line(x0, yVap, xTsat, yVap2);
+      drawingContext.setLineDash([]);
+    }
+
+    // Draw dashed blue curve (liquid extension to right)
+    if (Tsat !== null && iTsat < Tvals.length - 1) {
+      stroke('#1976D2');
+      strokeWeight(0.4);
+      drawingContext.setLineDash([1.2, 1.2]);
+      noFill();
+      beginShape();
+      for (let i = iTsat; i < Tvals.length; i++) {
+        // Use the liquid fugacity curve for T > Tsat (not the vapor value)
+        const yVal = clausius(Tvals[i]);
+        const [x, y] = toXY(Tvals[i], yVal);
+        vertex(x, y);
+      }
+      endShape();
+      drawingContext.setLineDash([]);
+    }
+
+    // Draw dashed vertical line at Tsat
+    if (Tsat !== null) {
+      const [xTsat, yTsat] = toXY(Tsat, fugacityVals[iTsat]);
+      stroke(0);
+      strokeWeight(0.3); // thinner vertical dashed line
+      drawingContext.setLineDash([0.8, 0.8]); // more frequent dashes
+      line(xTsat, yTsat, xTsat, axesY + axesHeight);
+      drawingContext.setLineDash([]);
+      // Draw black dot at (Tsat, fugacity)
+      fill(0);
+      noStroke();
+      ellipse(xTsat, yTsat, 3.2, 3.2);
+      // Draw T^sat label
+      fill(30);
+      noStroke();
+      textSize(3.2);
+      textAlign(CENTER, BOTTOM);
+      text('T', xTsat - 7, yTsat - 2);
+      textSize(2.5); // smaller for superscript
+      textAlign(LEFT, BOTTOM);
+      text('sat', xTsat - 6.0, yTsat - 4);
+    }
+    drawingContext.restore();
+
+    // Draw region labels (not clipped)
+    if (Tsat !== null) {
+      // 'liquid' label: along the lower left curve
+      const fracLiquid = 0.35;
+      const T_liq = 280 + (Tsat - 280) * fracLiquid;
+      const y_liq = clausius(T_liq);
+      const [xL, yL] = toXY(T_liq, y_liq);
+      push();
+      textSize(4.2);
+      fill(30);
+      noStroke();
+      textAlign(CENTER, CENTER);
+      translate(xL, yL);
+      rotate(-Math.PI / 14);
+      text('liquid', 12, -4);
+      pop();
+
+      // 'vapor' label: to the right of Tsat, above the vapor line
+      const T_vap = Tsat + (400 - Tsat) * 0.6;
+      const y_vap = fugacityVals[iTsat];
+      const [xV, yV] = toXY(T_vap, y_vap);
+      push();
+      textSize(4.2);
+      fill(30);
+      noStroke();
+      textAlign(LEFT, BOTTOM);
+      text('vapor', xV - 5, yV - 2);
+      pop();
+    }
   }
 
   // Draw fugacity vs pressure graph if in that mode and data is available
@@ -348,7 +552,7 @@ function drawGraphBar() {
 
     // Draw vapor line (solid, #093FB4 up to Psat)
     stroke('#093FB4');
-    strokeWeight(1.2);
+    strokeWeight(0.5); // thinner solid line
     noFill();
     beginShape();
     for (let i = 0; i <= iPsat; i++) {
@@ -359,8 +563,8 @@ function drawGraphBar() {
     // Draw vapor extension (dashed, faint blue) from Psat to (3,3)
     if (Psat !== null && Psat < 3.0) {
       stroke('#1976D2');
-      strokeWeight(0.8);
-      drawingContext.setLineDash([3, 3]);
+      strokeWeight(0.4); // thinner dashed line
+      drawingContext.setLineDash([1.2, 1.2]); // more frequent dashes
       const [xStart, yStart] = toXY(Psat, Psat);
       const [xEnd, yEnd] = toXY(3.0, 3.0);
       line(xStart, yStart, xEnd, yEnd);
@@ -369,8 +573,8 @@ function drawGraphBar() {
     // Draw liquid extension (dashed, faint blue) before Psat
     if (iPsat > 0) {
       stroke('#1976D2');
-      strokeWeight(0.8);
-      drawingContext.setLineDash([3, 3]);
+      strokeWeight(0.4); // thinner dashed line
+      drawingContext.setLineDash([1.2, 1.2]); // more frequent dashes
       beginShape();
       for (let i = 0; i <= iPsat; i++) {
         const [x, y] = toXY(Pvals[i], fugacityLiquid[i]);
@@ -381,7 +585,7 @@ function drawGraphBar() {
     }
     // Draw liquid line (solid, #093FB4 from Psat to end)
     stroke('#093FB4');
-    strokeWeight(1.2);
+    strokeWeight(0.5); // thinner solid line
     noFill();
     beginShape();
     for (let i = iPsat; i < Pvals.length; i++) {
@@ -394,8 +598,8 @@ function drawGraphBar() {
       const [x0, yPsat] = toXY(0, Psat);
       const [xPsat, yPsat2] = toXY(Psat, Psat);
       stroke('#1976D2');
-      strokeWeight(0.8);
-      drawingContext.setLineDash([3, 3]);
+      strokeWeight(0.4); // thinner dashed line
+      drawingContext.setLineDash([1.2, 1.2]); // more frequent dashes
       line(x0, yPsat, xPsat, yPsat2);
       drawingContext.setLineDash([]);
     }
@@ -403,8 +607,8 @@ function drawGraphBar() {
     if (Psat !== null) {
       const [xPsat, yPsat] = toXY(Psat, Psat);
       stroke(0);
-      strokeWeight(0.7);
-      drawingContext.setLineDash([2, 2]);
+      strokeWeight(0.3); // thinner vertical dashed line
+      drawingContext.setLineDash([0.8, 0.8]); // more frequent dashes
       line(xPsat, yPsat, xPsat, axesY + axesHeight);
       drawingContext.setLineDash([]);
       // Draw black dot at (Psat, Psat)
@@ -416,7 +620,10 @@ function drawGraphBar() {
       noStroke();
       textSize(3.2);
       textAlign(CENTER, BOTTOM);
-      text('P^sat', xPsat - 7, yPsat - 2);
+      text('P', xPsat - 7, yPsat - 2);
+      textSize(2.5); // smaller for superscript
+      textAlign(LEFT, BOTTOM);
+      text('sat', xPsat - 6.0, yPsat - 4);
     }
     drawingContext.restore();
 
