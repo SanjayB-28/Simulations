@@ -22,7 +22,7 @@ function drawControlBar() {
   fill(250, 250, 250);
   stroke(0);
   strokeWeight(0.4);
-  rect(margin, margin, state.canvasSize[0] - 2 * margin, barHeight, 1);
+  rect(margin, margin, state.canvasSize[0] - 2 * margin, barHeight, 0);
   
   // Dropdown options
   const dropdownOptions = ["fugacity versus temperature", "fugacity versus pressure"];
@@ -226,7 +226,7 @@ function drawGraphBar() {
   fill(250, 250, 250); // Slightly darker than control bar
   stroke(0);
   strokeWeight(0.4);
-  rect(margin, graphBarY, state.canvasSize[0] - 2 * margin, graphBarHeight, 1);
+  rect(margin, graphBarY, state.canvasSize[0] - 2 * margin, graphBarHeight, 0);
   
   // Remove the 'Graph' text
   // Center the axes box in the graph section
@@ -247,8 +247,7 @@ function drawGraphBar() {
 
   // Draw vertical label to the left of the axes, dynamic units
   const isPressure = window.state.dropdownSelection === 1;
-  const isRealGas = window.state.realGasChecked;
-  const fugacityLabel = isPressure ? (isRealGas ? "fugacity (MPa)" : "fugacity (bar)") : "fugacity (bar)";
+  const fugacityLabel = "fugacity (bar)";
   push();
   textSize(4.0); // reduced label size
   fill(30);
@@ -260,7 +259,7 @@ function drawGraphBar() {
   pop();
 
   // Draw horizontal label below the axes, dynamic units
-  const axisLabel = isPressure ? (isRealGas ? "pressure (MPa)" : "pressure (bar)") : "temperature (K)";
+  const axisLabel = isPressure ? "pressure (bar)" : "temperature (K)";
   textSize (4.0); // reduced label size
   fill(30);
   noStroke(); // ensure not bold
