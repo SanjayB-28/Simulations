@@ -97,7 +97,7 @@ export function calcAll() {
   // REAL GAS: all in bar
   const nPoints = 100;
   const Pmin = 0.0;
-  const Pmax = 3.0;
+  const Pmax = 200.0;
   function fugL(P, T) { return clausius(T); }
   function fugV(P, T) { return P - 0.8 * (P - Math.log(P + 1)); }
   // Find Psat: fugL(Psat, T) = fugV(Psat, T)
