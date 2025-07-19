@@ -218,7 +218,6 @@ function drawDropdownOptionsOverlay() {
 }
 
 function drawGraphBar() {
-  console.log("fugacityPressureGraph", window.state.fugacityPressureGraph);
   // Draw a graph bar below the control bar
   const controlBarHeight = 8;
   const graphBarHeight = 107;
@@ -561,8 +560,6 @@ function drawGraphBar() {
     const { Pvals, fugacityVapor, fugacityLiquid, Psat, realGas } = window.state.fugacityPressureGraph;
     const isIdealGas = realGas === false;
     const isRealGas = realGas === true;
-    // Debug output for plotting
-    console.log('[DEBUG] Plotting:', { realGas, Psat, Pvals, fugacityVapor });
     // Helper to map P, f to axes coordinates
     function toXY(P, f) {
       // Use independent x/y axis scaling for each plot type
@@ -699,7 +696,7 @@ function drawGraphBar() {
         fill(30);
         noStroke();
         textAlign(CENTER, BOTTOM);
-        text('liquid', xL, yL);
+        text('liquid', xL, yL -2);
         pop();
       } else {
         const fracLiquid = 0.85;
