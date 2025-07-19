@@ -31,7 +31,7 @@ function drawControlBar() {
   // Set slider label and value range based on dropdown
   let sliderLabel, sliderDisplay, sliderMin, sliderMax, sliderValueDisplay;
   if (selectedOption === 0) {
-    sliderLabel = "pressure (bar)";
+    sliderLabel = "pressure (MPa)";
     sliderMin = 0.2;
     sliderMax = 1.5;
     const value = sliderMin + (sliderMax - sliderMin) * window.state.sliderValue;
@@ -41,16 +41,19 @@ function drawControlBar() {
     // Fugacity versus pressure mode
     if (window.state.realGasChecked) {
       sliderLabel = "temperature (K)";
-      sliderMin = 450;
-      sliderMax = 500;
+      sliderMin = 350;
+      sliderMax = 400;
     } else {
       sliderLabel = "temperature (K)";
       sliderMin = 350;
       sliderMax = 400;
     }
-    const value = sliderMin + (sliderMax - sliderMin) * window.state.sliderValue;
-    sliderDisplay = Math.round(value);
+    // Snap to nearest integer temperature
+    const value = Math.round(sliderMin + (sliderMax - sliderMin) * window.state.sliderValue);
+    sliderDisplay = value;
     sliderValueDisplay = value;
+    // Optionally, update the sliderValue to match the snapped value (if you want the handle to snap)
+    // window.state.sliderValue = (value - sliderMin) / (sliderMax - sliderMin);
   }
 
   // Draw slider control
@@ -247,39 +250,61 @@ function drawGraphBar() {
 
   // Draw vertical label to the left of the axes, dynamic units
   const isPressure = window.state.dropdownSelection === 1;
-  const fugacityLabel = "fugacity (bar)";
+  const fugacityLabel = isPressure ? "fugacity (MPa)" : "fugacity (MPa)";
   push();
   textSize(4.0); // reduced label size
   fill(30);
   noStroke(); // ensure not bold
   textAlign(CENTER, CENTER);
-  translate(axesX - 10, axesY + axesHeight / 2);
+  translate(axesX - 12, axesY + axesHeight / 2); // moved further left
   rotate(-HALF_PI);
   text(fugacityLabel, 0, 0);
   pop();
 
   // Draw horizontal label below the axes, dynamic units
-  const axisLabel = isPressure ? "pressure (bar)" : "temperature (K)";
+  const axisLabel = isPressure ? "pressure (MPa)" : "temperature (K)";
   textSize (4.0); // reduced label size
   fill(30);
   noStroke(); // ensure not bold
   textAlign(CENTER, CENTER);
-  text(axisLabel, axesX + axesWidth / 2, axesY + axesHeight+6);
+  text(axisLabel, axesX + axesWidth / 2, axesY + axesHeight+7);
 
   // Draw axes ticks and labels for 'fugacity versus pressure'
   if (isPressure) {
-    const nTicks = 7; // 0.0, 0.5, ..., 3.0
-    const nMinor = 4; // 4 minor ticks between major
-    const minVal = 0.0;
-    const maxVal = 3.0;
+    const { Pvals, fugacityVapor, fugacityLiquid, Psat, realGas } = window.state.fugacityPressureGraph;
+    const isIdealGas = realGas === false;
+    const isRealGas = realGas === true;
+    // Y-axis (fugacity) always 0.0 to 0.3 MPa
+    const minValY = 0.0;
+    const maxValY = 0.3;
+    const nTicksY = 7;
+    const nMinorY = 4;
+    // X-axis (pressure) range and ticks
+    let minValX, maxValX, nTicksX, nMinorX;
+    if (isIdealGas) {
+      minValX = 0.0;
+      maxValX = 0.3;
+      nTicksX = 7;
+      nMinorX = 4;
+    } else if (isRealGas) {
+      minValX = 0.0;
+      maxValX = 0.6;
+      nTicksX = 7;
+      nMinorX = 4;
+    } else {
+      minValX = 0.0;
+      maxValX = 3.0;
+      nTicksX = 7;
+      nMinorX = 4;
+    }
     textSize(3.4); // increased tick number size
     fill(30);
-    // Draw major ticks and labels
+    // Y axis (fugacity) major ticks and labels
     textAlign(RIGHT, CENTER);
-    for (let i = 0; i < nTicks; i++) {
-      const frac = i / (nTicks - 1);
+    for (let i = 0; i < nTicksY; i++) {
+      const frac = i / (nTicksY - 1);
       const y = axesY + axesHeight - frac * axesHeight;
-      const val = (minVal + frac * (maxVal - minVal)).toFixed(1);
+      const val = (minValY + frac * (maxValY - minValY)).toFixed(2);
       // Left major tick
       stroke(0);
       strokeWeight(0.1);
@@ -290,9 +315,9 @@ function drawGraphBar() {
       noStroke();
       text(val, axesX - 1, y);
       // Minor ticks (skip after last major)
-      if (i < nTicks - 1) {
-        for (let j = 1; j <= nMinor; j++) {
-          const minorFrac = (i + j / (nMinor + 1)) / (nTicks - 1);
+      if (i < nTicksY - 1) {
+        for (let j = 1; j <= nMinorY; j++) {
+          const minorFrac = (i + j / (nMinorY + 1)) / (nTicksY - 1);
           const yMinor = axesY + axesHeight - minorFrac * axesHeight;
           stroke(0);
           strokeWeight(0.1);
@@ -303,12 +328,12 @@ function drawGraphBar() {
         }
       }
     }
-    // Bottom and top axes
+    // X axis (pressure) major ticks and labels
     textAlign(CENTER, TOP);
-    for (let i = 0; i < nTicks; i++) {
-      const frac = i / (nTicks - 1);
+    for (let i = 0; i < nTicksX; i++) {
+      const frac = i / (nTicksX - 1);
       const x = axesX + frac * axesWidth;
-      const val = (minVal + frac * (maxVal - minVal)).toFixed(1);
+      const val = (minValX + frac * (maxValX - minValX)).toFixed(2);
       // Bottom major tick
       stroke(0);
       strokeWeight(0.1);
@@ -319,9 +344,9 @@ function drawGraphBar() {
       noStroke();
       text(val, x, axesY + axesHeight + 1);
       // Minor ticks (skip after last major)
-      if (i < nTicks - 1) {
-        for (let j = 1; j <= nMinor; j++) {
-          const minorFrac = (i + j / (nMinor + 1)) / (nTicks - 1);
+      if (i < nTicksX - 1) {
+        for (let j = 1; j <= nMinorX; j++) {
+          const minorFrac = (i + j / (nMinorX + 1)) / (nTicksX - 1);
           const xMinor = axesX + minorFrac * axesWidth;
           stroke(0);
           strokeWeight(0.1);
@@ -337,12 +362,12 @@ function drawGraphBar() {
 
   // Draw axes ticks and labels for 'fugacity versus temperature'
   if (!isPressure) {
-    const nTicks = 7; // 280, 300, ..., 400 K
-    const nMinor = 3; // 3 minor ticks between major
+    const nTicks = 5; // 5 major ticks for y-axis (fugacity)
+    const nMinor = 4; // 4 minor ticks between major for y-axis
     const minValY = 0.0;
-    const maxValY = 3.0;
-    const minValX = 280;
-    const maxValX = 400;
+    const maxValY = 2.0;
+    const minValX = 380;
+    const maxValX = 500;
     textSize(3.4); // increased tick number size
     fill(30);
     // Y axis (fugacity) major ticks and labels
@@ -350,7 +375,7 @@ function drawGraphBar() {
     for (let i = 0; i < nTicks; i++) {
       const frac = i / (nTicks - 1);
       const y = axesY + axesHeight - frac * axesHeight;
-      const val = (minValY + frac * (maxValY - minValY)).toFixed(1);
+      const val = (minValY + frac * (maxValY - minValY)).toFixed(2);
       // Left major tick
       stroke(0);
       strokeWeight(0.1);
@@ -375,9 +400,11 @@ function drawGraphBar() {
       }
     }
     // X axis (temperature) major ticks and labels
+    const nTicksX = 7; // 7 major ticks for temperature axis
+    const nMinorX = 3; // 3 minor ticks between major for x-axis
     textAlign(CENTER, TOP);
-    for (let i = 0; i < nTicks; i++) {
-      const frac = i / (nTicks - 1);
+    for (let i = 0; i < nTicksX; i++) {
+      const frac = i / (nTicksX - 1);
       const x = axesX + frac * axesWidth;
       const val = Math.round(minValX + frac * (maxValX - minValX));
       // Bottom major tick
@@ -390,9 +417,9 @@ function drawGraphBar() {
       noStroke();
       text(val, x, axesY + axesHeight + 1);
       // Minor ticks (skip after last major)
-      if (i < nTicks - 1) {
-        for (let j = 1; j <= nMinor; j++) {
-          const minorFrac = (i + j / (nMinor + 1)) / (nTicks - 1);
+      if (i < nTicksX - 1) {
+        for (let j = 1; j <= nMinorX; j++) {
+          const minorFrac = (i + j / (nMinorX + 1)) / (nTicksX - 1);
           const xMinor = axesX + minorFrac * axesWidth;
           stroke(0);
           strokeWeight(0.1);
@@ -411,8 +438,8 @@ function drawGraphBar() {
     const { Tvals, fugacityVals, Tsat, pres } = window.state.fugacityTemperatureGraph;
     // Helper to map T, f to axes coordinates
     function toXY(T, f) {
-      const x = axesX + ((T - 280) / 120) * axesWidth;
-      const y = axesY + axesHeight - (f / 3.0) * axesHeight;
+      const x = axesX + ((T - 380) / 120) * axesWidth;
+      const y = axesY + axesHeight - (f / 2.0) * axesHeight;
       return [x, y];
     }
     // Find index of Tsat
@@ -451,7 +478,7 @@ function drawGraphBar() {
       stroke('#1976D2');
       strokeWeight(0.4);
       drawingContext.setLineDash([1.2, 1.2]);
-      const [x0, yVap] = toXY(280, fugacityVals[iTsat]);
+      const [x0, yVap] = toXY(380, fugacityVals[iTsat]);
       const [xTsat, yVap2] = toXY(Tsat, fugacityVals[iTsat]);
       line(x0, yVap, xTsat, yVap2);
       drawingContext.setLineDash([]);
@@ -466,7 +493,7 @@ function drawGraphBar() {
       beginShape();
       for (let i = iTsat; i < Tvals.length; i++) {
         // Use the liquid fugacity curve for T > Tsat (not the vapor value)
-        const yVal = clausius(Tvals[i]);
+        const yVal = clausius(Tvals[i]) / 10.0; // MPa
         const [x, y] = toXY(Tvals[i], yVal);
         vertex(x, y);
       }
@@ -501,9 +528,9 @@ function drawGraphBar() {
     // Draw region labels (not clipped)
     if (Tsat !== null) {
       // 'liquid' label: along the lower left curve
-      const fracLiquid = 0.35;
-      const T_liq = 280 + (Tsat - 280) * fracLiquid;
-      const y_liq = clausius(T_liq);
+      const fracLiquid = 0.20;
+      const T_liq = 380 + (Tsat - 380) * fracLiquid;
+      const y_liq = clausius(T_liq) / 10.0; // MPa
       const [xL, yL] = toXY(T_liq, y_liq);
       push();
       textSize(4.2);
@@ -511,12 +538,12 @@ function drawGraphBar() {
       noStroke();
       textAlign(CENTER, CENTER);
       translate(xL, yL);
-      rotate(-Math.PI / 14);
-      text('liquid', 12, -4);
+      rotate(-Math.PI / 8);
+      text('liquid', 6, 4);
       pop();
 
       // 'vapor' label: to the right of Tsat, above the vapor line
-      const T_vap = Tsat + (400 - Tsat) * 0.6;
+      const T_vap = Tsat + (500 - Tsat) * 0.6;
       const y_vap = fugacityVals[iTsat];
       const [xV, yV] = toXY(T_vap, y_vap);
       push();
@@ -532,12 +559,17 @@ function drawGraphBar() {
   // Draw fugacity vs pressure graph if in that mode and data is available
   if (isPressure && window.state.fugacityPressureGraph) {
     const { Pvals, fugacityVapor, fugacityLiquid, Psat, realGas } = window.state.fugacityPressureGraph;
+    const isIdealGas = realGas === false;
+    const isRealGas = realGas === true;
     // Debug output for plotting
     console.log('[DEBUG] Plotting:', { realGas, Psat, Pvals, fugacityVapor });
     // Helper to map P, f to axes coordinates
     function toXY(P, f) {
-      const x = axesX + (P / 3.0) * axesWidth;
-      const y = axesY + axesHeight - (f / 3.0) * axesHeight;
+      // Use independent x/y axis scaling for each plot type
+      const maxValX = isIdealGas ? 0.3 : (isRealGas ? 0.6 : 3.0);
+      const maxValY = 0.3;
+      const x = axesX + (P / maxValX) * axesWidth;
+      const y = axesY + axesHeight - (f / maxValY) * axesHeight;
       return [x, y];
     }
     // Find index of Psat
@@ -559,18 +591,41 @@ function drawGraphBar() {
       vertex(x, y);
     }
     endShape();
-    // Draw vapor extension (dashed, faint blue) from Psat to (3,3)
-    if (Psat !== null && Psat < 3.0) {
+
+    // Only for ideal gas: draw vapor extension (dashed, faint blue) from Psat to (max, max)
+    if (Psat !== null && isIdealGas && Psat < 0.3) { // Changed maxVal to 0.3 for ideal gas
       stroke('#1976D2');
       strokeWeight(0.4); // thinner dashed line
       drawingContext.setLineDash([1.2, 1.2]); // more frequent dashes
       const [xStart, yStart] = toXY(Psat, Psat);
-      const [xEnd, yEnd] = toXY(3.0, 3.0);
+      const [xEnd, yEnd] = toXY(0.3, 0.3); // Changed maxVal to 0.3 for ideal gas
       line(xStart, yStart, xEnd, yEnd);
       drawingContext.setLineDash([]);
     }
-    // Draw liquid extension (dashed, faint blue) before Psat
-    if (iPsat > 0) {
+
+    // For real gas: draw vapor extension (dashed, faint blue) from Psat to maxValX as a curve
+    if (Psat !== null && isRealGas) {
+      stroke('#1976D2');
+      strokeWeight(0.4); // thinner dashed line
+      drawingContext.setLineDash([1.2, 1.2]); // more frequent dashes
+      const maxValX = 0.6;
+      const nExt = 40;
+      // Real gas vapor fugacity function (copied from calcs.js)
+      function fugV(P) { return (10.0 * P - 0.8 * (10.0 * P - Math.log(10.0 * P + 1))) / 10.0; }
+      noFill();
+      beginShape();
+      for (let j = 0; j <= nExt; j++) {
+        const P = Psat + (maxValX - Psat) * (j / nExt);
+        const f = fugV(P);
+        const [x, y] = toXY(P, f);
+        vertex(x, y);
+      }
+      endShape();
+      drawingContext.setLineDash([]);
+    }
+
+    // Only for ideal gas: draw liquid extension (dashed, faint blue) before Psat
+    if (iPsat > 0 && isIdealGas) {
       stroke('#1976D2');
       strokeWeight(0.4); // thinner dashed line
       drawingContext.setLineDash([1.2, 1.2]); // more frequent dashes
@@ -582,6 +637,7 @@ function drawGraphBar() {
       endShape();
       drawingContext.setLineDash([]);
     }
+
     // Draw liquid line (solid, #093FB4 from Psat to end)
     stroke('#093FB4');
     strokeWeight(0.5); // thinner solid line
@@ -592,10 +648,12 @@ function drawGraphBar() {
       vertex(x, y);
     }
     endShape();
+
     // Draw dashed horizontal line at y=Psat (from y-axis to Psat)
     if (Psat !== null) {
-      const [x0, yPsat] = toXY(0, Psat);
-      const [xPsat, yPsat2] = toXY(Psat, Psat);
+      const fugL = fugacityLiquid[iPsat];
+      const [x0, yPsat] = toXY(0, fugL);
+      const [xPsat, yPsat2] = toXY(Psat, fugL);
       stroke('#1976D2');
       strokeWeight(0.4); // thinner dashed line
       drawingContext.setLineDash([1.2, 1.2]); // more frequent dashes
@@ -604,13 +662,14 @@ function drawGraphBar() {
     }
     // Draw vertical dashed line at Psat
     if (Psat !== null) {
-      const [xPsat, yPsat] = toXY(Psat, Psat);
+      const fugL = fugacityLiquid[iPsat];
+      const [xPsat, yPsat] = toXY(Psat, fugL);
       stroke(0);
       strokeWeight(0.3); // thinner vertical dashed line
       drawingContext.setLineDash([0.8, 0.8]); // more frequent dashes
       line(xPsat, yPsat, xPsat, axesY + axesHeight);
       drawingContext.setLineDash([]);
-      // Draw black dot at (Psat, Psat)
+      // Draw black dot at (Psat, fugL)
       fill(0);
       noStroke();
       ellipse(xPsat, yPsat, 3.2, 3.2);
@@ -628,33 +687,66 @@ function drawGraphBar() {
 
     // Draw region labels (not clipped)
     if (Psat !== null) {
-      const fracVapor = 0.45; // a bit further along the line
-      const Px = Psat * fracVapor;
-      const Fy = Psat * fracVapor;
-      const [xV, yV] = toXY(Px, Fy);
-      push();
-      textSize(4.2);
-      fill(30);
-      noStroke();
-      textAlign(CENTER, CENTER);
-      translate(xV, yV);
-      rotate(-Math.PI / 4.8);
-      translate(0, -4); // Move up from the line
-      text('vapor', 0, 0);
-      pop();
       // 'liquid' label, horizontal, above liquid line near right
-      const fracLiquid = 0.7;
-      const PxL = Psat + (3 - Psat) * fracLiquid;
-      const FyL = Psat;
-      const [xL, yL] = toXY(PxL, FyL);
-      push();
-      textSize(4.2);
-      fill(30);
-      noStroke();
-      textAlign(LEFT, BOTTOM);
-      text('liquid', xL - 5 , yL - 1); // left and down
-      pop();
+      if (isRealGas) {
+        // Make the 'liquid' label move only vertically: fixed x, y from fugacityLiquid[iPsat]
+        const fracX = 0.75;
+        const xL = axesX + axesWidth * fracX;
+        const fugL = fugacityLiquid[iPsat];
+        const [_, yL] = toXY(0, fugL); // get y pixel for fugacity = fugL
+        push();
+        textSize(4.2);
+        fill(30);
+        noStroke();
+        textAlign(CENTER, BOTTOM);
+        text('liquid', xL, yL);
+        pop();
+      } else {
+        const fracLiquid = 0.85;
+        const PxL = Psat + (0.3 - Psat) * fracLiquid;
+        const FyL = Psat;
+        const [xL, yL] = toXY(PxL, FyL - 0.02); // constant offset above line
+        push();
+        textSize(4.2);
+        fill(30);
+        noStroke();
+        textAlign(LEFT, BOTTOM);
+        text('liquid', xL - 10, yL - 1); // left and up
+        pop();
+      }
+      // 'vapor' label, horizontal, above vapor line near right
+      if (isRealGas) {
+        const fixedP = 0.08; // fixed pressure for stable label position
+        function fugV(P) { return (10.0 * P - 0.8 * (10.0 * P - Math.log(10.0 * P + 1))) / 10.0; }
+        const f_label = fugV(fixedP);
+        const [xV, yV] = toXY(fixedP, f_label - 0.02); // small, fixed offset below the curve
+        push();
+        textSize(4.2);
+        fill(30);
+        noStroke();
+        textAlign(CENTER, CENTER);
+        translate(xV, yV);
+        rotate(-Math.PI / 4.2);
+        text('vapor', 0, 0);
+        pop();
+      } else {
+        push();
+        textSize(4.2);
+        fill(30);
+        noStroke();
+        textAlign(CENTER, CENTER);
+        const fracVapor = 0.45; // a bit further along the line
+        const Px = Psat * fracVapor;
+        const Fy = Psat * fracVapor;
+        const [xV, yV] = toXY(Px, Fy);
+        translate(xV, yV);
+        rotate(-Math.PI / 4.8);
+        translate(0, -4); // Move up from the line
+        text('vapor', 0, 0);
+        pop();
+      }
     }
+
   }
 }
 
