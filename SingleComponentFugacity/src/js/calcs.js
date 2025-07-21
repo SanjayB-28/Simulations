@@ -87,7 +87,7 @@ function calcFugacityPressureRealGas(temp) {
   // REAL GAS: all in MPa
   const nPoints = 100;
   const Pmin = 0.0;
-  const Pmax = 0.6;
+  const Pmax = 0.3;
   // Vapor fugacity (real gas, in MPa):
   function fugV(P) { return (10.0 * P - 0.8 * (10.0 * P - Math.log(10.0 * P + 1))) / 10.0; }
   // Liquid fugacity (in MPa):
@@ -154,7 +154,7 @@ function getCurrentTemperature() {
   if (window.state.dropdownSelection !== 1) return 0;
   if (window.state.realGasChecked) {
     const minT = 350;
-    const maxT = 400;
+    const maxT = 385;
     // Snap to nearest integer
     return Math.round(minT + (maxT - minT) * window.state.sliderValue);
   } else {

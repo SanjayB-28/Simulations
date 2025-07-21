@@ -18,11 +18,11 @@ function drawControlBar() {
   const barHeight = 8;
   const margin = 2; // Space between bar and canvas border
   
-  // Draw the background bar with margins
-  fill(250, 250, 250);
-  stroke(0);
-  strokeWeight(0.4);
-  rect(margin, margin, state.canvasSize[0] - 2 * margin, barHeight, 0);
+  // Remove the background bar with margins in control bar
+  // fill(250, 250, 250);
+  // stroke(0);
+  // strokeWeight(0.4);
+  // rect(margin, margin, state.canvasSize[0] - 2 * margin, barHeight, 0);
   
   // Dropdown options
   const dropdownOptions = ["fugacity versus temperature", "fugacity versus pressure"];
@@ -42,7 +42,7 @@ function drawControlBar() {
     if (window.state.realGasChecked) {
       sliderLabel = "temperature (K)";
       sliderMin = 350;
-      sliderMax = 400;
+      sliderMax = 385;
     } else {
       sliderLabel = "temperature (K)";
       sliderMin = 350;
@@ -134,7 +134,7 @@ function drawSlider(x, y, width, value, label, displayValue) {
   noStroke();
   textSize(2.8);
   textAlign(RIGHT, CENTER);
-  text(displayValue, x + width + 10, y);
+  text(displayValue, x + width + 7.5, y);
 
   // Store slider bounds for interaction
   window.sliderBounds = {
@@ -224,11 +224,11 @@ function drawGraphBar() {
   const margin = 2;
   const graphBarY = margin + controlBarHeight + 1; // Position below control bar with 1px gap
   
-  // Draw the background bar with margins
-  fill(250, 250, 250); // Slightly darker than control bar
-  stroke(0);
-  strokeWeight(0.4);
-  rect(margin, graphBarY, state.canvasSize[0] - 2 * margin, graphBarHeight, 0);
+  // Remove the background bar with margins in graph bar
+  // fill(250, 250, 250); // Slightly darker than control bar
+  // stroke(0);
+  // strokeWeight(0.4);
+  // rect(margin, graphBarY, state.canvasSize[0] - 2 * margin, graphBarHeight, 0);
   
   // Remove the 'Graph' text
   // Center the axes box in the graph section
@@ -287,7 +287,7 @@ function drawGraphBar() {
       nMinorX = 4;
     } else if (isRealGas) {
       minValX = 0.0;
-      maxValX = 0.6;
+      maxValX = 0.3;
       nTicksX = 7;
       nMinorX = 4;
     } else {
@@ -303,7 +303,7 @@ function drawGraphBar() {
     for (let i = 0; i < nTicksY; i++) {
       const frac = i / (nTicksY - 1);
       const y = axesY + axesHeight - frac * axesHeight;
-      const val = (minValY + frac * (maxValY - minValY)).toFixed(2);
+      const val = (minValY + frac * (maxValY - minValY)).toFixed(1);
       // Left major tick
       stroke(0);
       strokeWeight(0.1);
@@ -374,7 +374,7 @@ function drawGraphBar() {
     for (let i = 0; i < nTicks; i++) {
       const frac = i / (nTicks - 1);
       const y = axesY + axesHeight - frac * axesHeight;
-      const val = (minValY + frac * (maxValY - minValY)).toFixed(2);
+      const val = (minValY + frac * (maxValY - minValY)).toFixed(1);
       // Left major tick
       stroke(0);
       strokeWeight(0.1);
@@ -563,7 +563,7 @@ function drawGraphBar() {
     // Helper to map P, f to axes coordinates
     function toXY(P, f) {
       // Use independent x/y axis scaling for each plot type
-      const maxValX = isIdealGas ? 0.3 : (isRealGas ? 0.6 : 3.0);
+      const maxValX = 0.3;
       const maxValY = 0.3;
       const x = axesX + (P / maxValX) * axesWidth;
       const y = axesY + axesHeight - (f / maxValY) * axesHeight;
@@ -605,7 +605,7 @@ function drawGraphBar() {
       stroke('#1976D2');
       strokeWeight(0.4); // thinner dashed line
       drawingContext.setLineDash([1.2, 1.2]); // more frequent dashes
-      const maxValX = 0.6;
+      const maxValX = 0.3;
       const nExt = 40;
       // Real gas vapor fugacity function (copied from calcs.js)
       function fugV(P) { return (10.0 * P - 0.8 * (10.0 * P - Math.log(10.0 * P + 1))) / 10.0; }
