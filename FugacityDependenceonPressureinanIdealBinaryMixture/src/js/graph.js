@@ -278,6 +278,7 @@ export function drawPlot1(options = {}) {
         // Draw additional dots at tie-line intersections (AFTER dashed lines)
         fill(0);
         noStroke();
+        
         ellipse(liquidX, boundedTieLineY, 1.5, 1.5); // Liquid point on curve
         ellipse(vaporX, boundedTieLineY, 1.5, 1.5); // Vapor point on curve
       }
