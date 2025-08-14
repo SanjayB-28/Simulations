@@ -1,5 +1,5 @@
 export function drawButtonBar(x, y, width, height, selectedIndex = 1, options = {}) {
-  const buttonLabels = ["P-x-y", "fugacity versus P", "both"];
+  const buttonLabels = ["T-x-y", "fugacity versus T", "both"];
   const leftSegmentWidth = width * 0.25; // 25% for left
   const middleSegmentWidth = width * 0.5; // 40% for middle (wider)
   const rightSegmentWidth = width * 0.25; // 35% for right
@@ -50,7 +50,7 @@ export function drawButtonBar(x, y, width, height, selectedIndex = 1, options = 
       // Middle button with italicized P - better spacing
       text("    fugacity versus", btnX + btnW / 2 - 3, btnY + btnH / 2);
       textStyle(ITALIC);
-      text("    P", btnX + btnW / 2 + 8, btnY + btnH / 2);
+      text("    T", btnX + btnW / 2 + 8, btnY + btnH / 2);
       textStyle(NORMAL);
     } else {
       text(segment.label, btnX + btnW / 2, btnY + btnH / 2);

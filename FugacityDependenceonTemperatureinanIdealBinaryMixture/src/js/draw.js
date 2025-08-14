@@ -16,16 +16,57 @@ export function drawAll() {
     // Add fugacity text above plot with calculated values
     if (window.currentState) {
       const state = window.currentState;
-      const fB = state.fB.toFixed(2);
-      const fT = state.fT.toFixed(2);
       
       textSize(3.5);
       textAlign(CENTER, BOTTOM);
       fill(0);
       noStroke();
-      text(`fugacity of benzene = ${fB} bar              fugacity of toluene = ${fT} bar`, 
-           window.contentArea.x + window.contentArea.width / 2 + 4, 
-           window.contentArea.y + 4);
+      
+      // Draw text with italic mathematical symbols
+      const textX = window.contentArea.x + window.contentArea.width / 2 + 4;
+      const textY = window.contentArea.y + 4;
+      
+      // "P = 1 bar"
+      textStyle(ITALIC);
+      text("P", textX - 50, textY);
+      textStyle(NORMAL);
+      text(" = 1 bar", textX - 42.5, textY);
+      
+      // "f_B = y_B P = 0.39 bar"
+      textStyle(ITALIC);
+      text("f", textX - 21, textY);
+      textStyle(NORMAL);
+      textSize(2.5);
+      text("B", textX - 18.5, textY + 1);
+      textSize(3.5);
+      textStyle(ITALIC);
+      text(" = y", textX - 15, textY);
+      textStyle(NORMAL);
+      textSize(2.5);
+      text("B", textX - 10.5, textY + 1);
+      textSize(3.5);
+      textStyle(ITALIC);
+      text(" P", textX - 8, textY);
+      textStyle(NORMAL);
+      text(" = 0.39 bar", textX + 2, textY);
+      
+      // "f_T = y_T P = 0.61 bar"
+      textStyle(ITALIC);
+      text("f", textX + 22, textY);
+      textStyle(NORMAL);
+      textSize(2.5);
+      text("T", textX + 24.5, textY + 1);
+      textSize(3.5);
+      textStyle(ITALIC);
+      text(" = y", textX + 28, textY);
+      textStyle(NORMAL);
+      textSize(2.5);
+      text("T", textX + 32.5, textY + 1);
+      textSize(3.5);
+      textStyle(ITALIC);
+      text(" P", textX + 35, textY);
+      textStyle(NORMAL);
+      text(" = 0.61 bar", textX + 45, textY);
     }
   } else if (selectedIndex === 1) {
     // fugacity versus P button selected - show Plot 2 only
@@ -34,16 +75,57 @@ export function drawAll() {
     // Add fugacity text above plot with calculated values
     if (window.currentState) {
       const state = window.currentState;
-      const fB = state.fB.toFixed(2);
-      const fT = state.fT.toFixed(2);
       
       textSize(3.5);
       textAlign(CENTER, BOTTOM);
       fill(0);
       noStroke();
-      text(`fugacity of benzene = ${fB} bar              fugacity of toluene = ${fT} bar`, 
-           window.contentArea.x + window.contentArea.width / 2 + 4, 
-           window.contentArea.y + 4);
+      
+      // Draw text with italic mathematical symbols
+      const textX = window.contentArea.x + window.contentArea.width / 2 + 4;
+      const textY = window.contentArea.y + 4;
+      
+      // "P = 1 bar"
+      textStyle(ITALIC);
+      text("P", textX - 50, textY);
+      textStyle(NORMAL);
+      text(" = 1 bar", textX - 42.5, textY);
+      
+      // "f_B = y_B P = 0.39 bar"
+      textStyle(ITALIC);
+      text("f", textX - 21, textY);
+      textStyle(NORMAL);
+      textSize(2.5);
+      text("B", textX - 18.5, textY + 1);
+      textSize(3.5);
+      textStyle(ITALIC);
+      text(" = y", textX - 15, textY);
+      textStyle(NORMAL);
+      textSize(2.5);
+      text("B", textX - 10.5, textY + 1);
+      textSize(3.5);
+      textStyle(ITALIC);
+      text(" P", textX - 8, textY);
+      textStyle(NORMAL);
+      text(" = 0.39 bar", textX + 2, textY);
+      
+      // "f_T = y_T P = 0.61 bar"
+      textStyle(ITALIC);
+      text("f", textX + 22, textY);
+      textStyle(NORMAL);
+      textSize(2.5);
+      text("T", textX + 24.5, textY + 1);
+      textSize(3.5);
+      textStyle(ITALIC);
+      text(" = y", textX + 28, textY);
+      textStyle(NORMAL);
+      textSize(2.5);
+      text("T", textX + 32.5, textY + 1);
+      textSize(3.5);
+      textStyle(ITALIC);
+      text(" P", textX + 35, textY);
+      textStyle(NORMAL);
+      text(" = 0.61 bar", textX + 45, textY);
     }
   } else if (selectedIndex === 2) {
     // both button selected - show both plots side by side

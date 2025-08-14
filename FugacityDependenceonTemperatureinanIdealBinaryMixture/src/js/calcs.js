@@ -96,8 +96,8 @@ function generatePxyData(tempC, n = 100) {
 
 function readSliders() {
   const z   = 0.05 + 0.9  * window.state.sliderValue;     // 0.05-0.95
-  const P   = 0.1  + 0.4  * window.state.slider2Value;    // 0.1-0.5 bar
-  const T   = 40   + 19   * window.state.slider3Value;    // 40-59 °C
+  const P   = 0.3;                                        // Fixed pressure at 0.3 bar
+  const T   = 75   + 40   * window.state.slider3Value;    // 75-115 °C
   return { z, P, T };
 }
 

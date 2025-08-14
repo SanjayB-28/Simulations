@@ -96,22 +96,6 @@ window.mousePressed = function() {
     }
   }
   
-  // Check second slider interaction
-  if (window.slider2Bounds) {
-    const { x, y, width, height } = window.slider2Bounds;
-    if (
-      window.mX >= x && window.mX <= x + width &&
-      window.mY >= y && window.mY <= y + height
-    ) {
-      window.state.isDraggingSlider2 = true;
-      const newValue = Math.max(0, Math.min(1, (window.mX - x) / width));
-      // Convert to stepped value (0.1 to 0.5, 41 steps with 0.01 increments)
-      const steppedValue = getSteppedValue(newValue, 0.1, 0.5, 41);
-      window.state.slider2Value = getContinuousValue(steppedValue, 0.1, 0.5);
-      return;
-    }
-  }
-  
   // Check third slider interaction
   if (window.slider3Bounds) {
     const { x, y, width, height } = window.slider3Bounds;
@@ -121,9 +105,9 @@ window.mousePressed = function() {
     ) {
       window.state.isDraggingSlider3 = true;
       const newValue = Math.max(0, Math.min(1, (window.mX - x) / width));
-      // Convert to stepped value (40 to 59, 20 steps)
-      const steppedValue = getSteppedValue(newValue, 40, 59, 20);
-      window.state.slider3Value = getContinuousValue(steppedValue, 40, 59);
+      // Convert to stepped value (75 to 115, 41 steps)
+      const steppedValue = getSteppedValue(newValue, 75, 115, 41);
+      window.state.slider3Value = getContinuousValue(steppedValue, 75, 115);
       return;
     }
   }
@@ -170,26 +154,18 @@ window.mouseDragged = function() {
     const steppedValue = getSteppedValue(newValue, 0.05, 0.95, 91);
     window.state.sliderValue = getContinuousValue(steppedValue, 0.05, 0.95);
   }
-  if (window.state.isDraggingSlider2 && window.slider2Bounds) {
-    const { x, width } = window.slider2Bounds;
-    const newValue = Math.max(0, Math.min(1, (window.mX - x) / width));
-    // Convert to stepped value (0.1 to 0.5, 41 steps with 0.01 increments)
-    const steppedValue = getSteppedValue(newValue, 0.1, 0.5, 41);
-    window.state.slider2Value = getContinuousValue(steppedValue, 0.1, 0.5);
-  }
   if (window.state.isDraggingSlider3 && window.slider3Bounds) {
     const { x, width } = window.slider3Bounds;
     const newValue = Math.max(0, Math.min(1, (window.mX - x) / width));
-    // Convert to stepped value (40 to 59, 20 steps)
-    const steppedValue = getSteppedValue(newValue, 40, 59, 20);
-    window.state.slider3Value = getContinuousValue(steppedValue, 40, 59);
+    // Convert to stepped value (75 to 115, 41 steps)
+    const steppedValue = getSteppedValue(newValue, 75, 115, 41);
+    window.state.slider3Value = getContinuousValue(steppedValue, 75, 115);
   }
 };
 
 // Add mouse release to stop dragging
 window.mouseReleased = function() {
   window.state.isDraggingSlider = false;
-  window.state.isDraggingSlider2 = false;
   window.state.isDraggingSlider3 = false;
 };
 
