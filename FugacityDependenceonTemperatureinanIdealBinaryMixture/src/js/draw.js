@@ -10,8 +10,11 @@ export function drawAll() {
   const selectedIndex = window.state.selectedButtonIndex || 0;
   
   if (selectedIndex === 0) {
-    // P-x-y button selected - show Plot 1 only
-    drawPlot1({ axisLabelSize: 3.5 });
+    // T-x-y button selected - show Plot 1 only
+    drawPlot1({ 
+      axisLabelSize: 3.5,
+      yLabel: "temperature (°C)"
+    });
     
     // Add fugacity text above plot with calculated values
     if (window.currentState) {
@@ -69,8 +72,11 @@ export function drawAll() {
       text(" = 0.61 bar", textX + 45, textY);
     }
   } else if (selectedIndex === 1) {
-    // fugacity versus P button selected - show Plot 2 only
-    drawPlot2({ axisLabelSize: 3.5 });
+    // fugacity versus T button selected - show Plot 2 only
+    drawPlot2({ 
+      axisLabelSize: 3.5,
+      xLabel: "temperature (°C)"
+    });
     
     // Add fugacity text above plot with calculated values
     if (window.currentState) {
@@ -138,7 +144,7 @@ export function drawAll() {
       leftMargin: 18,
       rightMargin: plotWidth + gap + 8, // Add gap and use correct right margin
       xLabel: "mole fraction benzene",
-      yLabel: "pressure (bar)",
+      yLabel: "temperature (°C)",
       axisLabelSize: 3.5,
       yLabelXOffset: -9 // Move Y-axis label to the right in both case
     });
@@ -147,7 +153,7 @@ export function drawAll() {
     drawPlot2({
       leftMargin: plotWidth + gap + 18, // Add gap to separate from Plot 1
       rightMargin: 8, // Same right margin as individual plots (default)
-      xLabel: "pressure (bar)",
+      xLabel: "temperature (°C)",
       yLabel: "fugacity (bar)",
       axisLabelSize: 3.5,
       yLabelXOffset: -9, // Move Y-axis label to the right in both case

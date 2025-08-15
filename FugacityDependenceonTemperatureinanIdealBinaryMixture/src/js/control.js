@@ -24,8 +24,8 @@ export function drawControlBar() {
   const buttonBarY = margin + 2;
   drawButtonBar(buttonBarX, buttonBarY, buttonBarWidth, buttonBarHeight, window.state.selectedButtonIndex);
 
-  // Calculate benzene mole fraction from slider value (0.05 to 0.95)
-  const benzeneMoleFraction = 0.05 + (window.state.sliderValue * 0.9);
+  // Calculate benzene mole fraction from slider value (0.00 to 1.00)
+  const benzeneMoleFraction = 0.00 + (window.state.sliderValue * 1.00);
 
   // Draw slider control (move closer to label)
   drawSlider(margin + 43, margin + barHeight / 2 + 10, 22, window.state.sliderValue, "overall mole fraction benzene", benzeneMoleFraction.toFixed(2), { labelX: margin + 4, valueX: margin + 45 + 28 });

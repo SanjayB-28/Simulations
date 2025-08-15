@@ -108,16 +108,19 @@ export function drawBasicPlot(options = {}) {
 }
 
 export function drawPlot1(options = {}) {
-  // P-x-y plot
+  // T-x-y plot
   const leftMargin = options.leftMargin ?? 18;
   const topMargin = options.topMargin ?? 8;
   const rightMargin = options.rightMargin ?? 8;
   const bottomMargin = options.bottomMargin ?? 14;
   const tickLen = options.tickLen ?? 2;
   const tickCount = options.tickCount ?? 5; // 5 major ticks
-  const yLabel = options.yLabel ?? "pressure (bar)";
+  const yLabel = options.yLabel ?? "temperature (°C)";
   const xLabel = options.xLabel ?? "mole fraction benzene";
-  const yTickLabel = options.yTickLabel ?? (i => (i * 0.1).toFixed(1)); // 0.0 to 0.5 in 5 steps
+  const yTickLabel = options.yTickLabel ?? (i => {
+    const temps = [75, 80, 90, 100, 110, 120];
+    return temps[i].toString();
+  }); // 75, 80, 90, 100, 110, 120
   const xTickLabel = options.xTickLabel ?? (i => (i * 0.2).toFixed(1)); // 0.0 to 1.0 in 5 steps
   const axisLabelSize = options.axisLabelSize ?? 3.5;
   const tickLabelSize = options.tickLabelSize ?? 3.0;
@@ -130,9 +133,9 @@ export function drawPlot1(options = {}) {
   const plotW = window.contentArea.width - leftMargin - rightMargin;
   const plotH = window.contentArea.height - topMargin - bottomMargin;
 
-  // Draw P-x-y curves FIRST (behind axes and ticks)
+  // Draw T-x-y curves FIRST (behind axes and ticks)
   if (window.pxyData && window.pxyData.length > 0) {
-    // Draw bubble point curve (Px) - Orange
+    // Draw bubble point curve (Tx) - Orange
     stroke(255, 165, 0); // Orange
     strokeWeight(0.6); // Reduced thickness
     noFill();
@@ -140,14 +143,14 @@ export function drawPlot1(options = {}) {
     for (let i = 0; i < window.pxyData.length; i++) {
       const point = window.pxyData[i];
       const x = plotX + (point.x * plotW);
-      const y = plotY + plotH - (point.Px / 0.5 * plotH);
+      const y = plotY + plotH - ((point.Px - 75) / (120 - 75) * plotH);
       // Ensure point is within plot bounds
       const boundedY = Math.max(plotY, Math.min(plotY + plotH, y));
       vertex(x, boundedY);
     }
     endShape();
     
-    // Draw dew point curve (Py) - Red
+    // Draw dew point curve (Ty) - Red
     stroke(255, 0, 0); // Red
     strokeWeight(0.6); // Reduced thickness
     noFill();
@@ -155,7 +158,7 @@ export function drawPlot1(options = {}) {
     for (let i = 0; i < window.pxyData.length; i++) {
       const point = window.pxyData[i];
       const x = plotX + (point.x * plotW);
-      const y = plotY + plotH - (point.Py / 0.5 * plotH);
+      const y = plotY + plotH - ((point.Py - 75) / (120 - 75) * plotH);
       // Ensure point is within plot bounds
       const boundedY = Math.max(plotY, Math.min(plotY + plotH, y));
       vertex(x, boundedY);
@@ -176,16 +179,21 @@ export function drawPlot1(options = {}) {
   fill(0);
   noStroke();
   
-  // Y axis ticks (left and right) - 4 major ticks
+  // Y axis ticks (left and right) - 6 major ticks for temperature
   textAlign(RIGHT, CENTER);
-  for (let i = 0; i <= tickCount; i++) {
-    const y = plotY + plotH - (i * plotH / tickCount);
+  const tempTicks = [75, 80, 90, 100, 110, 120];
+  for (let i = 0; i < tempTicks.length; i++) {
+    const temp = tempTicks[i];
+    const y = plotY + plotH - ((temp - 75) / (120 - 75) * plotH);
     // Left ticks and labels
     stroke(0);
     strokeWeight(0.25);
     line(plotX, y, plotX + tickLen, y);
     noStroke();
-    text(yTickLabel(i), plotX - 2, y);
+    // Don't show label for 75
+    if (temp !== 75) {
+      text(temp.toString(), plotX - 2, y);
+    }
     // Right ticks only
     stroke(0);
     strokeWeight(0.25);
@@ -223,10 +231,24 @@ export function drawPlot1(options = {}) {
     }
   }
   
-  // Minor ticks for Y-axis (4 minor ticks between each major tick)
-  for (let i = 0; i < tickCount; i++) {
+  // Minor ticks for Y-axis - adjust for temperature range
+  stroke(0);
+  strokeWeight(0.15);
+  // Minor ticks between 75-80 (2 minor ticks at 76 and 78)
+  const minorTicks75to80 = [76, 78];
+  for (let temp of minorTicks75to80) {
+    const y = plotY + plotH - ((temp - 75) / (120 - 75) * plotH);
+    // Left minor ticks
+    line(plotX, y, plotX + tickLen * 0.6, y);
+    // Right minor ticks
+    line(plotX + plotW, y, plotX + plotW - tickLen * 0.6, y);
+  }
+  // Minor ticks between other major ticks (80-90, 90-100, 100-110, 110-120)
+  const tempRanges = [[80, 90], [90, 100], [100, 110], [110, 120]];
+  for (let range of tempRanges) {
     for (let j = 1; j <= 4; j++) {
-      const y = plotY + plotH - (i * plotH / tickCount) - (j * plotH / (tickCount * 5));
+      const temp = range[0] + (j * (range[1] - range[0]) / 5);
+      const y = plotY + plotH - ((temp - 75) / (120 - 75) * plotH);
       // Left minor ticks
       line(plotX, y, plotX + tickLen * 0.6, y);
       // Right minor ticks
@@ -238,7 +260,7 @@ export function drawPlot1(options = {}) {
   if (window.currentState) {
     const state = window.currentState;
     const currentX = plotX + (state.moleFraction * plotW);
-    const currentY = plotY + plotH - (state.pressure / 0.5 * plotH);
+    const currentY = plotY + plotH - ((state.temperature - 75) / (120 - 75) * plotH);
     
     // Ensure current point is within plot bounds
     const boundedCurrentY = Math.max(plotY, Math.min(plotY + plotH, currentY));
@@ -254,7 +276,7 @@ export function drawPlot1(options = {}) {
         // Calculate positions for tie-line points
         const liquidX = plotX + (solLiq * plotW);
         const vaporX = plotX + (solVap * plotW);
-        const tieLineY = plotY + plotH - (state.pressure / 0.5 * plotH);
+        const tieLineY = plotY + plotH - ((state.temperature - 75) / (120 - 75) * plotH);
         const boundedTieLineY = Math.max(plotY, Math.min(plotY + plotH, tieLineY));
         
         // Draw dashed tie-lines
@@ -325,18 +347,21 @@ export function drawPlot1(options = {}) {
 }
 
 export function drawPlot2(options = {}) {
-  // Fugacity versus P plot
+  // Fugacity versus T plot
   const leftMargin = options.leftMargin ?? 18;
   const topMargin = options.topMargin ?? 8;
   const rightMargin = options.rightMargin ?? 8;
   const bottomMargin = options.bottomMargin ?? 14;
   const tickLen = options.tickLen ?? 2;
-  const tickCount = options.tickCount ?? 4; // 4 major ticks for X-axis
+  const tickCount = options.tickCount ?? 3; // 3 major ticks for X-axis (80, 90, 100, 110)
   const yTickCount = options.yTickCount ?? 5; // 5 major ticks for Y-axis
   const yLabel = options.yLabel ?? "fugacity (bar)";
-  const xLabel = options.xLabel ?? "pressure (bar)";
+  const xLabel = options.xLabel ?? "temperature (°C)";
   const yTickLabel = options.yTickLabel ?? (i => (i * 0.1).toFixed(1)); // 0.0 to 0.5 in 5 steps
-  const xTickLabel = options.xTickLabel ?? (i => (0.1 + i * 0.1).toFixed(1)); // 0.1 to 0.5 in 4 steps
+  const xTickLabel = options.xTickLabel ?? (i => {
+    const temps = [80, 90, 100, 110];
+    return temps[i].toString();
+  }); // 80, 90, 100, 110
   const axisLabelSize = options.axisLabelSize ?? 3.5;
   const tickLabelSize = options.tickLabelSize ?? 3.0;
   const yLabelOffset = options.yLabelOffset ?? -4;
@@ -358,7 +383,7 @@ export function drawPlot2(options = {}) {
     beginShape();
     for (let i = 0; i < window.fugacityCurvesData.length; i++) {
       const point = window.fugacityCurvesData[i];
-      const x = plotX + ((point.p - 0.1) / 0.4) * plotW;
+      const x = plotX + ((point.p - 80) / (110 - 80)) * plotW;
       const y = plotY + plotH - (point.fBen / 0.5) * plotH;
       const boundedY = Math.max(plotY, Math.min(plotY + plotH, y));
       vertex(x, boundedY);
@@ -372,7 +397,7 @@ export function drawPlot2(options = {}) {
     beginShape();
     for (let i = 0; i < window.fugacityCurvesData.length; i++) {
       const point = window.fugacityCurvesData[i];
-      const x = plotX + ((point.p - 0.1) / 0.4) * plotW;
+      const x = plotX + ((point.p - 80) / (110 - 80)) * plotW;
       const y = plotY + plotH - (point.fTol / 0.5) * plotH;
       const boundedY = Math.max(plotY, Math.min(plotY + plotH, y));
       vertex(x, boundedY);
@@ -408,16 +433,18 @@ export function drawPlot2(options = {}) {
     line(plotX + plotW, y, plotX + plotW - tickLen, y);
     noStroke();
   }
-  // X axis ticks (bottom and top)
+  // X axis ticks (bottom and top) - temperature ticks
   textAlign(CENTER, TOP);
-  for (let i = 0; i <= tickCount; i++) {
-    const x = plotX + (i * plotW / tickCount);
+  const tempTicks = [80, 90, 100, 110];
+  for (let i = 0; i < tempTicks.length; i++) {
+    const temp = tempTicks[i];
+    const x = plotX + ((temp - 80) / (110 - 80)) * plotW;
     // Bottom ticks and labels
     stroke(0);
     strokeWeight(0.25);
     line(x, plotY + plotH, x, plotY + plotH - tickLen);
     noStroke();
-    text(xTickLabel(i), x, plotY + plotH + 2);
+    text(temp.toString(), x, plotY + plotH + 2);
     // Top ticks only
     stroke(0);
     strokeWeight(0.25);
@@ -428,9 +455,11 @@ export function drawPlot2(options = {}) {
   // Minor ticks for X-axis (4 minor ticks between each major tick)
   stroke(0);
   strokeWeight(0.15);
-  for (let i = 0; i < tickCount; i++) {
+  const tempRanges = [[80, 90], [90, 100], [100, 110]];
+  for (let range of tempRanges) {
     for (let j = 1; j <= 4; j++) {
-      const x = plotX + (i * plotW / tickCount) + (j * plotW / (tickCount * 5));
+      const temp = range[0] + (j * (range[1] - range[0]) / 5);
+      const x = plotX + ((temp - 80) / (110 - 80)) * plotW;
       // Bottom minor ticks
       line(x, plotY + plotH, x, plotY + plotH - tickLen * 0.6);
       // Top minor ticks
@@ -452,7 +481,7 @@ export function drawPlot2(options = {}) {
   // Draw current point if state is available (after axes and ticks)
   if (window.currentState) {
     const state = window.currentState;
-    const currentX = plotX + ((state.pressure - 0.1) / 0.4) * plotW;
+    const currentX = plotX + ((state.temperature - 80) / (110 - 80)) * plotW;
     const currentYB = plotY + plotH - (state.fB / 0.5) * plotH;
     const currentYT = plotY + plotH - (state.fT / 0.5) * plotH;
     

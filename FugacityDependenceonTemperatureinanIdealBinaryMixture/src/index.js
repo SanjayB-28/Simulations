@@ -89,9 +89,9 @@ window.mousePressed = function() {
     ) {
       window.state.isDraggingSlider = true;
       const newValue = Math.max(0, Math.min(1, (window.mX - x) / width));
-      // Convert to stepped value (0.05 to 0.95, 91 steps with 0.01 increments)
-      const steppedValue = getSteppedValue(newValue, 0.05, 0.95, 91);
-      window.state.sliderValue = getContinuousValue(steppedValue, 0.05, 0.95);
+      // Convert to stepped value (0.00 to 1.00, 101 steps with 0.01 increments)
+      const steppedValue = getSteppedValue(newValue, 0.00, 1.00, 101);
+      window.state.sliderValue = getContinuousValue(steppedValue, 0.00, 1.00);
       return;
     }
   }
@@ -150,9 +150,9 @@ window.mouseDragged = function() {
   if (window.state.isDraggingSlider && window.sliderBounds) {
     const { x, width } = window.sliderBounds;
     const newValue = Math.max(0, Math.min(1, (window.mX - x) / width));
-    // Convert to stepped value (0.05 to 0.95, 91 steps with 0.01 increments)
-    const steppedValue = getSteppedValue(newValue, 0.05, 0.95, 91);
-    window.state.sliderValue = getContinuousValue(steppedValue, 0.05, 0.95);
+    // Convert to stepped value (0.00 to 1.00, 101 steps with 0.01 increments)
+    const steppedValue = getSteppedValue(newValue, 0.00, 1.00, 101);
+    window.state.sliderValue = getContinuousValue(steppedValue, 0.00, 1.00);
   }
   if (window.state.isDraggingSlider3 && window.slider3Bounds) {
     const { x, width } = window.slider3Bounds;

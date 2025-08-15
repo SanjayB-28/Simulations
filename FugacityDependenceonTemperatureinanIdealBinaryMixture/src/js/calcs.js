@@ -95,7 +95,7 @@ function generatePxyData(tempC, n = 100) {
 /* ––––– Application glue ––––– */
 
 function readSliders() {
-  const z   = 0.05 + 0.9  * window.state.sliderValue;     // 0.05-0.95
+  const z   = 0.00 + 1.00 * window.state.sliderValue;     // 0.00-1.00
   const P   = 0.3;                                        // Fixed pressure at 0.3 bar
   const T   = 75   + 40   * window.state.slider3Value;    // 75-115 °C
   return { z, P, T };
