@@ -353,15 +353,15 @@ export function drawPlot2(options = {}) {
   const rightMargin = options.rightMargin ?? 8;
   const bottomMargin = options.bottomMargin ?? 14;
   const tickLen = options.tickLen ?? 2;
-  const tickCount = options.tickCount ?? 3; // 3 major ticks for X-axis (80, 90, 100, 110)
+  const tickCount = options.tickCount ?? 4; // 4 major ticks for X-axis
   const yTickCount = options.yTickCount ?? 5; // 5 major ticks for Y-axis
   const yLabel = options.yLabel ?? "fugacity (bar)";
   const xLabel = options.xLabel ?? "temperature (°C)";
   const yTickLabel = options.yTickLabel ?? (i => (i * 0.1).toFixed(1)); // 0.0 to 0.5 in 5 steps
   const xTickLabel = options.xTickLabel ?? (i => {
-    const temps = [80, 90, 100, 110];
+    const temps = [75, 80, 90, 100, 110, 115];
     return temps[i].toString();
-  }); // 80, 90, 100, 110
+  }); // 75, 80, 90, 100, 110, 115
   const axisLabelSize = options.axisLabelSize ?? 3.5;
   const tickLabelSize = options.tickLabelSize ?? 3.0;
   const yLabelOffset = options.yLabelOffset ?? -4;
@@ -383,7 +383,7 @@ export function drawPlot2(options = {}) {
     beginShape();
     for (let i = 0; i < window.fugacityCurvesData.length; i++) {
       const point = window.fugacityCurvesData[i];
-      const x = plotX + ((point.p - 80) / (110 - 80)) * plotW;
+      const x = plotX + ((point.p - 75) / (115 - 75)) * plotW;
       const y = plotY + plotH - (point.fBen / 0.5) * plotH;
       const boundedY = Math.max(plotY, Math.min(plotY + plotH, y));
       vertex(x, boundedY);
@@ -397,7 +397,7 @@ export function drawPlot2(options = {}) {
     beginShape();
     for (let i = 0; i < window.fugacityCurvesData.length; i++) {
       const point = window.fugacityCurvesData[i];
-      const x = plotX + ((point.p - 80) / (110 - 80)) * plotW;
+      const x = plotX + ((point.p - 75) / (115 - 75)) * plotW;
       const y = plotY + plotH - (point.fTol / 0.5) * plotH;
       const boundedY = Math.max(plotY, Math.min(plotY + plotH, y));
       vertex(x, boundedY);
@@ -435,16 +435,19 @@ export function drawPlot2(options = {}) {
   }
   // X axis ticks (bottom and top) - temperature ticks
   textAlign(CENTER, TOP);
-  const tempTicks = [80, 90, 100, 110];
+  const tempTicks = [75, 80, 90, 100, 110, 115];
   for (let i = 0; i < tempTicks.length; i++) {
     const temp = tempTicks[i];
-    const x = plotX + ((temp - 80) / (110 - 80)) * plotW;
+    const x = plotX + ((temp - 75) / (115 - 75)) * plotW;
     // Bottom ticks and labels
     stroke(0);
     strokeWeight(0.25);
     line(x, plotY + plotH, x, plotY + plotH - tickLen);
     noStroke();
-    text(temp.toString(), x, plotY + plotH + 2);
+    // Don't show label for 75 or 115
+    if (temp !== 75 && temp !== 115) {
+      text(temp.toString(), x, plotY + plotH + 2);
+    }
     // Top ticks only
     stroke(0);
     strokeWeight(0.25);
@@ -452,19 +455,38 @@ export function drawPlot2(options = {}) {
     noStroke();
   }
   
-  // Minor ticks for X-axis (4 minor ticks between each major tick)
+  // Minor ticks for X-axis - temperature minor ticks
   stroke(0);
   strokeWeight(0.15);
+  // Minor ticks between 75-80 (2 minor ticks at 76 and 78)
+  const minorTicks75to80 = [76, 78];
+  for (let temp of minorTicks75to80) {
+    const x = plotX + ((temp - 75) / (115 - 75)) * plotW;
+    // Bottom minor ticks
+    line(x, plotY + plotH, x, plotY + plotH - tickLen * 0.6);
+    // Top minor ticks
+    line(x, plotY, x, plotY + tickLen * 0.6);
+  }
+  // Minor ticks between other major ticks (80-90, 90-100, 100-110)
   const tempRanges = [[80, 90], [90, 100], [100, 110]];
   for (let range of tempRanges) {
     for (let j = 1; j <= 4; j++) {
       const temp = range[0] + (j * (range[1] - range[0]) / 5);
-      const x = plotX + ((temp - 80) / (110 - 80)) * plotW;
+      const x = plotX + ((temp - 75) / (115 - 75)) * plotW;
       // Bottom minor ticks
       line(x, plotY + plotH, x, plotY + plotH - tickLen * 0.6);
       // Top minor ticks
       line(x, plotY, x, plotY + tickLen * 0.6);
     }
+  }
+  // Minor ticks between 110-115 (2 minor ticks at 112 and 114)
+  const minorTicks110to115 = [112, 114];
+  for (let temp of minorTicks110to115) {
+    const x = plotX + ((temp - 75) / (115 - 75)) * plotW;
+    // Bottom minor ticks
+    line(x, plotY + plotH, x, plotY + plotH - tickLen * 0.6);
+    // Top minor ticks
+    line(x, plotY, x, plotY + tickLen * 0.6);
   }
   
   // Minor ticks for Y-axis (4 minor ticks between each major tick)
@@ -481,7 +503,7 @@ export function drawPlot2(options = {}) {
   // Draw current point if state is available (after axes and ticks)
   if (window.currentState) {
     const state = window.currentState;
-    const currentX = plotX + ((state.temperature - 80) / (110 - 80)) * plotW;
+    const currentX = plotX + ((state.temperature - 75) / (115 - 75)) * plotW;
     const currentYB = plotY + plotH - (state.fB / 0.5) * plotH;
     const currentYT = plotY + plotH - (state.fT / 0.5) * plotH;
     
@@ -509,7 +531,7 @@ export function drawPlot2(options = {}) {
     const benzeneIndex = Math.round(benzeneXPos * window.fugacityCurvesData.length);
     if (benzeneIndex < window.fugacityCurvesData.length) {
       const benzenePoint = window.fugacityCurvesData[benzeneIndex];
-      const benzeneX = plotX + ((benzenePoint.p - 0.1) / 0.4) * plotW;
+      const benzeneX = plotX + ((benzenePoint.p - 75) / (115 - 75)) * plotW;
       const benzeneY = plotY + plotH - (benzenePoint.fBen / 0.5) * plotH;
       const boundedBenzeneY = Math.max(plotY, Math.min(plotY + plotH, benzeneY));
       
@@ -532,7 +554,7 @@ export function drawPlot2(options = {}) {
     const tolueneIndex = Math.round(tolueneXPos * window.fugacityCurvesData.length);
     if (tolueneIndex < window.fugacityCurvesData.length) {
       const toluenePoint = window.fugacityCurvesData[tolueneIndex];
-      const tolueneX = plotX + ((toluenePoint.p - 0.1) / 0.4) * plotW;
+      const tolueneX = plotX + ((toluenePoint.p - 75) / (115 - 75)) * plotW;
       const tolueneY = plotY + plotH - (toluenePoint.fTol / 0.5) * plotH;
       const boundedTolueneY = Math.max(plotY, Math.min(plotY + plotH, tolueneY));
       
