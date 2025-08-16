@@ -967,3 +967,339 @@ export function drawPlot2(options = {}) {
   text(yLabel, 0, 0);
   pop();
 } 
+
+export function drawBothPlots(options = {}) {
+  // Both plots stacked vertically with purple frame
+  const leftMargin = options.leftMargin ?? 18;
+  const topMargin = options.topMargin ?? 8;
+  const rightMargin = options.rightMargin ?? 8;
+  const bottomMargin = options.bottomMargin ?? 14;
+  const tickLen = options.tickLen ?? 2;
+
+  const plotX = window.contentArea.x + leftMargin;
+  const plotY = window.contentArea.y + topMargin;
+  const plotW = window.contentArea.width - leftMargin - rightMargin;
+  const plotH = window.contentArea.height - topMargin - bottomMargin;
+
+  // Split the plot area into top and bottom sections
+  const topPlotH = plotH * 0.5;
+  const bottomPlotH = plotH * 0.5;
+  const topPlotY = plotY;
+  const bottomPlotY = plotY + topPlotH;
+
+  // Draw purple frame around both plots
+  stroke(128, 0, 128); // Purple
+  strokeWeight(0.4);
+  noFill();
+  rect(plotX, plotY, plotW, plotH);
+
+  // === TOP PLOT: Fugacity vs Temperature ===
+  
+  // Draw fugacity curves for top plot
+  if (window.fugacityCurvesData && window.fugacityCurvesData.length > 0) {
+    // Draw benzene fugacity curve (Purple) - solid line
+    stroke(128, 0, 128); // Purple
+    strokeWeight(0.6);
+    noFill();
+    
+    beginShape();
+    for (let i = 0; i < window.fugacityCurvesData.length; i++) {
+      const point = window.fugacityCurvesData[i];
+      const x = plotX + ((point.T - 75) / (115 - 75)) * plotW;
+      const y = topPlotY + topPlotH - (point.fB / 1.0) * topPlotH;
+      const boundedY = Math.max(topPlotY, Math.min(topPlotY + topPlotH, y));
+      vertex(x, boundedY);
+    }
+    endShape();
+    
+    // Draw toluene fugacity curve (Purple, dashed) - dashed line
+    stroke(128, 0, 128); // Purple
+    strokeWeight(0.6);
+    noFill();
+    
+    const toluenePoints = [];
+    for (let i = 0; i < window.fugacityCurvesData.length; i++) {
+      const point = window.fugacityCurvesData[i];
+      const x = plotX + ((point.T - 75) / (115 - 75)) * plotW;
+      const y = topPlotY + topPlotH - (point.fT / 1.0) * topPlotH;
+      const boundedY = Math.max(topPlotY, Math.min(topPlotY + topPlotH, y));
+      toluenePoints.push({ x, y: boundedY });
+    }
+    
+    drawConsistentDashedCurve(toluenePoints, 0.75, 1.5);
+  }
+
+  // Draw current points for top plot
+  if (window.currentState) {
+    const state = window.currentState;
+    const currentX = plotX + ((state.temperature - 75) / (115 - 75)) * plotW;
+    const currentYB = topPlotY + topPlotH - (state.fB / 1.0) * topPlotH;
+    const currentYT = topPlotY + topPlotH - (state.fT / 1.0) * topPlotH;
+    
+    // Draw current points
+    fill(0);
+    noStroke();
+    ellipse(currentX, currentYB, 2.0, 2.0);
+    ellipse(currentX, currentYT, 2.0, 2.0);
+    
+    // Add f_B and f_T labels
+    textSize(3.5);
+    textAlign(CENTER, CENTER);
+    
+    // Determine label positions
+    let fBLabelY, fTLabelY;
+    if (state.fB >= state.fT && state.moleFraction < 0.7) {
+      fBLabelY = currentYB - 6;
+      fTLabelY = currentYT + 6;
+    } else {
+      fBLabelY = currentYB + 6;
+      fTLabelY = currentYT - 6;
+    }
+    
+    // Determine label X offset based on temperature (smaller offsets)
+    let labelXOffset = 0;
+    if (state.temperature <= 76) {
+      labelXOffset = 0.5; // Small right offset when near left edge
+    } else if (state.temperature > 114) {
+      labelXOffset = -0.5; // Small left offset when near right edge
+    }
+    
+    // Calculate text dimensions for boundary checking
+    const fBText = "f_B";
+    const fBTextW = textWidth(fBText);
+    const fTText = "f_T";
+    const fTTextW = textWidth(fTText);
+    const textHeight = 4;
+    const padding = 0.5;
+    const totalFBTWidth = fBTextW + 2*padding;
+    const totalFTWidth = fTTextW + 2*padding;
+    
+    // Draw f_B label with boundary clipping (smaller offsets)
+    let fBTextX = currentX + (labelXOffset * 8); // Reduced from 15 to 8
+    
+    // Ensure f_B label stays within plot boundaries (with smaller adjustments)
+    if (fBTextX - totalFBTWidth/2 < plotX) {
+      fBTextX = plotX + totalFBTWidth/2 + 1; // Smaller adjustment
+    } else if (fBTextX + totalFBTWidth/2 > plotX + plotW) {
+      fBTextX = plotX + plotW - totalFBTWidth/2 - 1; // Smaller adjustment
+    }
+    
+    // Ensure f_B label Y position stays within plot boundaries
+    let boundedFBY = Math.max(plotY + textHeight/2 + padding, Math.min(plotY + plotH - textHeight/2 - padding, fBLabelY));
+    
+    // White background for f_B label
+    fill(255);
+    noStroke();
+    rect(fBTextX - totalFBTWidth/2, boundedFBY - textHeight/2 - padding, 
+         totalFBTWidth, textHeight + 2*padding);
+    
+    // f_B text
+    fill(0);
+    noStroke();
+    textSize(4.0); // Increased from 3.5
+    textStyle(ITALIC); // Make f italic
+    text("f", fBTextX - 1, boundedFBY);
+    textStyle(NORMAL); // Reset to normal
+    textSize(2.5);
+    text("B", fBTextX + 1, boundedFBY + 1);
+    textSize(3.5);
+    
+    // Draw f_T label with boundary clipping (smaller offsets)
+    let fTTextX = currentX + (labelXOffset * 8); // Reduced from 15 to 8
+    
+    // Ensure f_T label stays within plot boundaries (with smaller adjustments)
+    if (fTTextX - totalFTWidth/2 < plotX) {
+      fTTextX = plotX + totalFTWidth/2 + 1; // Smaller adjustment
+    } else if (fTTextX + totalFTWidth/2 > plotX + plotW) {
+      fTTextX = plotX + plotW - totalFTWidth/2 - 1; // Smaller adjustment
+    }
+    
+    // Ensure f_T label Y position stays within plot boundaries
+    let boundedFTY = Math.max(plotY + textHeight/2 + padding, Math.min(plotY + plotH - textHeight/2 - padding, fTLabelY));
+    
+    // White background for f_T label
+    fill(255);
+    noStroke();
+    rect(fTTextX - totalFTWidth/2, boundedFTY - textHeight/2 - padding, 
+         totalFTWidth, textHeight + 2*padding);
+    
+    // f_T text
+    fill(0);
+    noStroke();
+    textSize(4.0); // Increased from 3.5
+    textStyle(ITALIC); // Make f italic
+    text("f", fTTextX - 1, boundedFTY);
+    textStyle(NORMAL); // Reset to normal
+    textSize(2.5);
+    text("T", fTTextX + 1, boundedFTY + 1);
+    textSize(3.5);
+  }
+
+  // === BOTTOM PLOT: Temperature vs Mole Fraction ===
+  
+  // Draw T-x-y curves for bottom plot
+  if (window.pxyData && window.pxyData.length > 0) {
+    // Draw bubble point curve (Tx) - Blue
+    stroke(0, 0, 255); // Blue
+    strokeWeight(0.6);
+    noFill();
+    beginShape();
+    for (let i = 0; i < window.pxyData.length; i++) {
+      const point = window.pxyData[i];
+      const x = plotX + (point.x * plotW);
+      const y = bottomPlotY + bottomPlotH - ((point.Tx - 75) / (115 - 75) * bottomPlotH);
+      const boundedY = Math.max(bottomPlotY, Math.min(bottomPlotY + bottomPlotH, y));
+      vertex(x, boundedY);
+    }
+    endShape();
+    
+    // Draw dew point curve (Ty) - Green
+    stroke(0, 128, 0); // Dark Green
+    strokeWeight(0.6);
+    noFill();
+    beginShape();
+    for (let i = 0; i < window.pxyData.length; i++) {
+      const point = window.pxyData[i];
+      const x = plotX + (point.x * plotW);
+      const y = bottomPlotY + bottomPlotH - ((point.Ty - 75) / (115 - 75) * bottomPlotH);
+      const boundedY = Math.max(bottomPlotY, Math.min(bottomPlotY + bottomPlotH, y));
+      vertex(x, boundedY);
+    }
+    endShape();
+  }
+
+  // Draw current point and tie-line for bottom plot
+  if (window.currentState) {
+    const state = window.currentState;
+    const currentX = plotX + (state.moleFraction * plotW);
+    const currentY = bottomPlotY + bottomPlotH - ((state.temperature - 75) / (115 - 75) * bottomPlotH);
+    
+    // Draw current point
+    fill(0);
+    noStroke();
+    ellipse(currentX, currentY, 2.0, 2.0);
+    
+    // Draw tie-line if in two-phase region
+    if (state.isInTwoPhase && state.xB !== null && state.yB !== null) {
+      const liquidX = plotX + (state.xB * plotW);
+      const vaporX = plotX + (state.yB * plotW);
+      
+      // Vertical dashed line from current point to x-axis
+      stroke(0, 0, 255); // Blue
+      strokeWeight(0.4);
+      drawVerticalDashedLine(liquidX, currentY, bottomPlotY + bottomPlotH, plotX, plotW);
+      
+      // Draw xB label
+      drawXBLabel(liquidX, bottomPlotY, bottomPlotH, plotX, plotW);
+    }
+  }
+
+  // === MINIMAL AXES AND LABELS ===
+  
+  // Draw x-axis lines for both plots
+  stroke(0);
+  strokeWeight(0.4);
+  // Top plot x-axis line
+  line(plotX, topPlotY + topPlotH, plotX + plotW, topPlotY + topPlotH);
+  // Bottom plot x-axis line
+  line(plotX, bottomPlotY + bottomPlotH, plotX + plotW, bottomPlotY + bottomPlotH);
+  
+  // X-axis ticks for TOP PLOT (temperature)
+  stroke(0);
+  strokeWeight(0.25);
+  textSize(3.0);
+  fill(0);
+  noStroke();
+  textAlign(CENTER, TOP);
+  
+  const tempTicks = [80, 90, 100, 110];
+  for (let temp of tempTicks) {
+    const x = plotX + ((temp - 75) / (115 - 75)) * plotW;
+    // Top plot ticks (bottom of top plot)
+    stroke(0);
+    strokeWeight(0.25);
+    line(x, topPlotY + topPlotH, x, topPlotY + topPlotH - tickLen);
+    noStroke();
+    text(temp.toString(), x, topPlotY + topPlotH + 2);
+  }
+  
+  // X-axis ticks for BOTTOM PLOT (mole fraction)
+  const moleFracTicks = [0.0, 0.2, 0.4, 0.6, 0.8, 1.0];
+  for (let frac of moleFracTicks) {
+    const x = plotX + (frac * plotW);
+    // Bottom plot ticks (bottom of bottom plot)
+    stroke(0);
+    strokeWeight(0.25);
+    line(x, bottomPlotY + bottomPlotH, x, bottomPlotY + bottomPlotH - tickLen);
+    noStroke();
+    text(frac.toFixed(1), x, bottomPlotY + bottomPlotH + 2);
+  }
+  
+  // Y-axis ticks for top plot (fugacity)
+  textAlign(RIGHT, CENTER);
+  const fugacityTicks = [0.2, 0.4, 0.6, 0.8, 1.0];
+  for (let fugacity of fugacityTicks) {
+    const y = topPlotY + topPlotH - (fugacity / 1.0) * topPlotH;
+    // Left ticks
+    stroke(0);
+    strokeWeight(0.25);
+    line(plotX, y, plotX + tickLen, y);
+    noStroke();
+    text(fugacity.toFixed(1), plotX - 2, y);
+    // Right ticks
+    stroke(0);
+    strokeWeight(0.25);
+    line(plotX + plotW, y, plotX + plotW - tickLen, y);
+    noStroke();
+  }
+  
+  // Y-axis ticks for bottom plot (temperature)
+  const bottomTempTicks = [80, 90, 100, 110];
+  for (let temp of bottomTempTicks) {
+    const y = bottomPlotY + bottomPlotH - ((temp - 75) / (115 - 75) * bottomPlotH);
+    // Left ticks
+    stroke(0);
+    strokeWeight(0.25);
+    line(plotX, y, plotX + tickLen, y);
+    noStroke();
+    text(temp.toString(), plotX - 2, y);
+    // Right ticks
+    stroke(0);
+    strokeWeight(0.25);
+    line(plotX + plotW, y, plotX + plotW - tickLen, y);
+    noStroke();
+  }
+  
+  // === AXIS LABELS ===
+  textStyle(NORMAL);
+  textSize(3.5);
+  fill(0);
+  noStroke();
+  
+  // X-axis labels
+  textAlign(CENTER, BOTTOM);
+  text("temperature (°C)", plotX + plotW / 2, topPlotY + topPlotH + 8); // Top plot x-axis - moved down
+  text("mole fraction benzene", plotX + plotW / 2, bottomPlotY + bottomPlotH + 10); // Bottom plot x-axis - moved down
+  
+  // Y-axis labels
+  textAlign(CENTER, CENTER);
+  push();
+  translate(plotX - 10, topPlotY + topPlotH / 2); // Moved left from -8 to -12
+  rotate(-HALF_PI);
+  text("fugacity (bar)", 0, 0);
+  pop();
+  
+  push();
+  translate(plotX - 10, bottomPlotY + bottomPlotH / 2); // Moved left from -8 to -12
+  rotate(-HALF_PI);
+  text("temperature (°C)", 0, 0);
+  pop();
+  
+  // === REGION LABELS ===
+  textSize(3.0);
+  fill(100); // Grey
+  noStroke();
+  textAlign(CENTER, CENTER);
+  text("liquid", plotX + plotW * 0.2, bottomPlotY + bottomPlotH * 0.8);
+  text("vapor", plotX + plotW * 0.8, bottomPlotY + bottomPlotH * 0.2);
+} 
