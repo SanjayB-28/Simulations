@@ -2,6 +2,7 @@ import { drawBasicPlot, drawPlot1, drawPlot2 } from './graph.js';
 import { drawControlBar } from './control.js';
 import { drawSlider } from './slider.js';
 import { drawHamburger, drawCanvasMenu } from './hamburger.js';
+import { Tx } from './calcs.js';
 
 export function drawAll() {
   drawControlBar();
@@ -35,41 +36,98 @@ export function drawAll() {
       textStyle(NORMAL);
       text(" = 1 bar", textX - 42.5, textY);
       
-      // "f_B = y_B P = 0.39 bar"
+      // Determine formula and values based on phase region
+      let fBFormula, fTFormula, fBValue, fTValue;
+      
+      if (state.isInTwoPhase) {
+        // Two-phase region: fB = yB * P, fT = yT * P
+        fBFormula = "y_B P";
+        fTFormula = "y_T P";
+        fBValue = state.fB.toFixed(2);
+        fTValue = state.fT.toFixed(2);
+      } else if (state.temperature <= Tx(state.moleFraction)) {
+        // Liquid region: fB = xB * PsatB, fT = xT * PsatT
+        fBFormula = "x_B P^sat";
+        fTFormula = "x_T P^sat";
+        fBValue = state.fB.toFixed(2);
+        fTValue = state.fT.toFixed(2);
+      } else {
+        // Vapor region: fB = yB * P, fT = yT * P
+        fBFormula = "y_B P";
+        fTFormula = "y_T P";
+        fBValue = state.fB.toFixed(2);
+        fTValue = state.fT.toFixed(2);
+      }
+      
+      // "f_B = formula = value bar"
       textStyle(ITALIC);
       text("f", textX - 21, textY);
       textStyle(NORMAL);
       textSize(2.5);
-      text("B", textX - 18.5, textY + 1);
+      text("B", textX - 19, textY + 1);
       textSize(3.5);
       textStyle(ITALIC);
-      text(" = y", textX - 15, textY);
-      textStyle(NORMAL);
-      textSize(2.5);
-      text("B", textX - 10.5, textY + 1);
-      textSize(3.5);
-      textStyle(ITALIC);
-      text(" P", textX - 8, textY);
-      textStyle(NORMAL);
-      text(" = 0.39 bar", textX + 2, textY);
+      text(" = ", textX - 16, textY);
       
-      // "f_T = y_T P = 0.61 bar"
+      // Draw the formula part
+      if (fBFormula === "y_B P") {
+        text("y", textX - 12, textY);
+        textStyle(NORMAL);
+        textSize(2.5);
+        text("B", textX - 9.5, textY + 1);
+        textSize(3.5);
+        textStyle(ITALIC);
+        text(" P", textX - 7, textY);
+      } else if (fBFormula === "x_B P^sat") {
+        text("x", textX - 12, textY);
+        textStyle(NORMAL);
+        textSize(2.5);
+        text("B", textX - 9.5, textY + 1);
+        textSize(3.5);
+        textStyle(ITALIC);
+        text(" P", textX - 7, textY);
+        textSize(2.5);
+        text("sat", textX - 3, textY - 2.5);
+        textSize(3.5);
+      }
+      
+      textStyle(NORMAL);
+      text(" = " + fBValue + " bar", textX + 6, textY);
+      
+      // "f_T = formula = value bar"
       textStyle(ITALIC);
       text("f", textX + 22, textY);
       textStyle(NORMAL);
       textSize(2.5);
-      text("T", textX + 24.5, textY + 1);
+      text("T", textX + 24, textY + 1);
       textSize(3.5);
       textStyle(ITALIC);
-      text(" = y", textX + 28, textY);
+      text(" = ", textX + 27, textY);
+      
+      // Draw the formula part
+      if (fTFormula === "y_T P") {
+        text("y", textX + 31, textY);
+        textStyle(NORMAL);
+        textSize(2.5);
+        text("T", textX + 33.5, textY + 1);
+        textSize(3.5);
+        textStyle(ITALIC);
+        text(" P", textX + 36, textY);
+      } else if (fTFormula === "x_T P^sat") {
+        text("x", textX + 31, textY);
+        textStyle(NORMAL);
+        textSize(2.5);
+        text("T", textX + 33.5, textY + 1);
+        textSize(3.5);
+        textStyle(ITALIC);
+        text(" P", textX + 36, textY);
+        textSize(2.5);
+        text("sat", textX + 40, textY - 2.5);
+        textSize(3.5);
+      }
+      
       textStyle(NORMAL);
-      textSize(2.5);
-      text("T", textX + 32.5, textY + 1);
-      textSize(3.5);
-      textStyle(ITALIC);
-      text(" P", textX + 35, textY);
-      textStyle(NORMAL);
-      text(" = 0.61 bar", textX + 45, textY);
+      text(" = " + fTValue + " bar", textX + 49, textY);
     }
   } else if (selectedIndex === 1) {
     // fugacity versus T button selected - show Plot 2 only
@@ -97,41 +155,98 @@ export function drawAll() {
       textStyle(NORMAL);
       text(" = 1 bar", textX - 42.5, textY);
       
-      // "f_B = y_B P = 0.39 bar"
+      // Determine formula and values based on phase region
+      let fBFormula, fTFormula, fBValue, fTValue;
+      
+      if (state.isInTwoPhase) {
+        // Two-phase region: fB = yB * P, fT = yT * P
+        fBFormula = "y_B P";
+        fTFormula = "y_T P";
+        fBValue = state.fB.toFixed(2);
+        fTValue = state.fT.toFixed(2);
+      } else if (state.temperature <= Tx(state.moleFraction)) {
+        // Liquid region: fB = xB * PsatB, fT = xT * PsatT
+        fBFormula = "x_B P^sat";
+        fTFormula = "x_T P^sat";
+        fBValue = state.fB.toFixed(2);
+        fTValue = state.fT.toFixed(2);
+      } else {
+        // Vapor region: fB = yB * P, fT = yT * P
+        fBFormula = "y_B P";
+        fTFormula = "y_T P";
+        fBValue = state.fB.toFixed(2);
+        fTValue = state.fT.toFixed(2);
+      }
+      
+      // "f_B = formula = value bar"
       textStyle(ITALIC);
       text("f", textX - 21, textY);
       textStyle(NORMAL);
       textSize(2.5);
-      text("B", textX - 18.5, textY + 1);
+      text("B", textX - 19, textY + 1);
       textSize(3.5);
       textStyle(ITALIC);
-      text(" = y", textX - 15, textY);
-      textStyle(NORMAL);
-      textSize(2.5);
-      text("B", textX - 10.5, textY + 1);
-      textSize(3.5);
-      textStyle(ITALIC);
-      text(" P", textX - 8, textY);
-      textStyle(NORMAL);
-      text(" = 0.39 bar", textX + 2, textY);
+      text(" = ", textX - 16, textY);
       
-      // "f_T = y_T P = 0.61 bar"
+      // Draw the formula part
+      if (fBFormula === "y_B P") {
+        text("y", textX - 12, textY);
+        textStyle(NORMAL);
+        textSize(2.5);
+        text("B", textX - 9.5, textY + 1);
+        textSize(3.5);
+        textStyle(ITALIC);
+        text(" P", textX - 7, textY);
+      } else if (fBFormula === "x_B P^sat") {
+        text("x", textX - 12, textY);
+        textStyle(NORMAL);
+        textSize(2.5);
+        text("B", textX - 9.5, textY + 1);
+        textSize(3.5);
+        textStyle(ITALIC);
+        text(" P", textX - 7, textY);
+        textSize(2.5);
+        text("sat", textX - 3, textY - 2.5);
+        textSize(3.5);
+      }
+      
+      textStyle(NORMAL);
+      text(" = " + fBValue + " bar", textX + 6, textY);
+      
+      // "f_T = formula = value bar"
       textStyle(ITALIC);
       text("f", textX + 22, textY);
       textStyle(NORMAL);
       textSize(2.5);
-      text("T", textX + 24.5, textY + 1);
+      text("T", textX + 24, textY + 1);
       textSize(3.5);
       textStyle(ITALIC);
-      text(" = y", textX + 28, textY);
+      text(" = ", textX + 27, textY);
+      
+      // Draw the formula part
+      if (fTFormula === "y_T P") {
+        text("y", textX + 31, textY);
+        textStyle(NORMAL);
+        textSize(2.5);
+        text("T", textX + 33.5, textY + 1);
+        textSize(3.5);
+        textStyle(ITALIC);
+        text(" P", textX + 36, textY);
+      } else if (fTFormula === "x_T P^sat") {
+        text("x", textX + 31, textY);
+        textStyle(NORMAL);
+        textSize(2.5);
+        text("T", textX + 33.5, textY + 1);
+        textSize(3.5);
+        textStyle(ITALIC);
+        text(" P", textX + 36, textY);
+        textSize(2.5);
+        text("sat", textX + 40, textY - 2.5);
+        textSize(3.5);
+      }
+      
       textStyle(NORMAL);
-      textSize(2.5);
-      text("T", textX + 32.5, textY + 1);
-      textSize(3.5);
-      textStyle(ITALIC);
-      text(" P", textX + 35, textY);
-      textStyle(NORMAL);
-      text(" = 0.61 bar", textX + 45, textY);
+      text(" = " + fTValue + " bar", textX + 49, textY);
     }
   } else if (selectedIndex === 2) {
     // both button selected - show both plots side by side
