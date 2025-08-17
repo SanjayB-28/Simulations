@@ -56,7 +56,33 @@
         </div>
         <div class="modal-body">
           <p>
-            Details Here, Update needed
+            The saturation pressures P<sub>i</sub><sup>sat</sup> were calculated using the Antoine equation:
+            <br>
+            P<sub>i</sub><sup>sat</sup> = 10<sup>(A<sub>i</sub> - (B<sub>i</sub> / (T + C<sub>i</sub>)))</sup>
+            <br>
+            where i represents either benzene or toluene (B or T), T is temperature (°C), and A<sub>i</sub>, B<sub>i</sub> and C<sub>i</sub> are Antoine constants.
+          </p>
+          <p>
+            The fugacity f<sub>i</sub> of a component depends on temperature and molar composition.
+          </p>
+          <p>
+            In the liquid region:
+            <br>
+            f<sub>i</sub> = x<sub>i</sub> P<sub>i</sub><sup>sat</sup>
+            <br>
+            where x<sub>i</sub> is the liquid mole fraction and both P<sub>i</sub><sup>sat</sup> and f<sub>i</sub> have units of bar.
+          </p>
+          <p>
+            In the vapor region:
+            <br>
+            f<sub>i</sub> = y<sub>i</sub> P
+            <br>
+            where y<sub>i</sub> is the vapor molar composition and P is the total pressure (bar).
+          </p>
+          <p>
+            When vapor and liquid are in equilibrium (VLE):
+            <br>
+            f<sub>i</sub> = y<sub>i</sub> P = x<sub>i</sub> P<sub>i</sub><sup>sat</sup>
           </p>
         </div>
       </div>
