@@ -156,7 +156,7 @@ export function drawAll() {
       textStyle(ITALIC);
       text("P", textX - 50, textY);
       textStyle(NORMAL);
-      text(" = 1 bar", textX - 42.5, textY);
+      text(" = 1 bar", textX - 42, textY);
       
       // Determine formula and values based on phase region
       let fBFormula, fTFormula, fBValue, fTValue;

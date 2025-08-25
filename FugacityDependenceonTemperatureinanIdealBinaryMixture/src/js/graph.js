@@ -454,12 +454,12 @@ export function drawPlot1(options = {}) {
       // Draw subscript "B"
       textSize(2.5);
       text("B", textX - 1.5, textY + 2.0);
-      textX += 2.5; // Fixed width instead of textWidth("B") + 0.5
+      textX += 2.0; // Fixed width instead of textWidth("B") + 0.5
       textSize(3.5);
       
       // Draw " = "
       text(" = ", textX - 2, textY);
-      textX += 1; // Fixed width instead of textWidth(" = ")
+      textX += 0; // Fixed width instead of textWidth(" = ")
       
       // Draw x_B value
       text(xBValue, textX + 2, textY);
@@ -475,12 +475,12 @@ export function drawPlot1(options = {}) {
       // Draw subscript "B"
       textSize(2.5);
       text("B", textX - 1.5, textY + 2.0);
-      textX += 2.5; // Fixed width instead of textWidth("B") + 0.5
+      textX += 2.0; // Fixed width instead of textWidth("B") + 0.5
       textSize(3.5);
       
       // Draw " = "
       text(" = ", textX - 2, textY);
-      textX += 1; // Fixed width instead of textWidth(" = ")
+      textX += 0; // Fixed width instead of textWidth(" = ")
       
       // Draw y_B value
       text(yBValue, textX + 2, textY);
